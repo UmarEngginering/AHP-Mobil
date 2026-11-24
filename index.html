@@ -1,0 +1,1666 @@
+<!DOCTYPE html>
+<html lang="id" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AHP Car Decision - Sistem Pendukung Keputusan Pemilihan Mobil Terbaik</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            50: '#eef2ff',
+                            100: '#e0e7ff',
+                            200: '#c7d2fe',
+                            500: '#6366f1',
+                            600: '#4f46e5',
+                            700: '#4338ca',
+                            800: '#3730a3',
+                            900: '#312e81',
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Plus Jakarta Sans', 'Inter', 'Segoe UI', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <!-- Font Awesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <!-- Chart.js CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        .active-tab { border-color: #4f46e5 !important; color: #4f46e5 !important; }
+        .dark .active-tab { border-color: #818cf8 !important; color: #818cf8 !important; }
+        .active-subtab { background-color: #ffffff !important; color: #4f46e5 !important; box-shadow: 0 1px 3px rgba(0,0,0,0.1) !important; }
+        .dark .active-subtab { background-color: #334155 !important; color: #a5b4fc !important; }
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 9999px; }
+        .dark ::-webkit-scrollbar-thumb { background: #475569; }
+        @media print {
+            header, footer, nav, .tab-btn, .subtab-btn, button, #themeToggle, #toastAlert, input[type="range"], #btnResetSimulation, .no-print {
+                display: none !important;
+            }
+            body { background: #fff !important; color: #000 !important; font-size: 10pt !important; }
+            main { max-width: 100% !important; padding: 0 !important; }
+            .tab-content { display: block !important; page-break-after: always; }
+            .submatrix-panel { display: block !important; margin-bottom: 2rem !important; }
+            table { page-break-inside: avoid; }
+        }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800 dark:bg-slate-900 dark:text-slate-100 min-h-screen flex flex-col font-sans transition-colors duration-200">
+
+    <!-- Top Navigation Bar -->
+    <header class="sticky top-0 z-50 bg-white/90 dark:bg-slate-900/90 backdrop-blur-md border-b border-slate-200 dark:border-slate-800 transition-colors">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex items-center justify-between h-16">
+                <!-- Brand / Logo -->
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-brand-600 to-indigo-400 flex items-center justify-center text-white shadow-md shadow-brand-500/20">
+                        <i class="fa-solid fa-car-side text-lg"></i>
+                    </div>
+                    <div>
+                        <div class="flex items-center gap-2">
+                            <span class="font-extrabold text-lg tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-brand-600 to-indigo-500 dark:from-indigo-400 dark:to-brand-300">AHP Car Decision</span>
+                            <span class="text-xs px-2 py-0.5 rounded-full font-semibold bg-emerald-100 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300 border border-emerald-300">Live Client-Side</span>
+                        </div>
+                        <p class="text-xs text-slate-500 dark:text-slate-400 font-medium">Studi Kasus Pemilihan Mobil Terbaik (Metode AHP)</p>
+                    </div>
+                </div>
+
+                <!-- Navigation Links & Actions -->
+                <div class="flex items-center gap-2 sm:gap-3">
+                    <button onclick="resetToDefaultData()" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-700 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 transition" title="Kembalikan data ke awal">
+                        <i class="fa-solid fa-rotate-left"></i>
+                        <span class="hidden sm:inline">Reset Data</span>
+                    </button>
+
+                    <button onclick="exportCsv()" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/40 hover:bg-emerald-100 dark:hover:bg-emerald-900/60 border border-emerald-200 dark:border-emerald-800 transition" title="Unduh hasil hitungan dalam format CSV">
+                        <i class="fa-solid fa-file-csv"></i>
+                        <span class="hidden sm:inline">Ekspor CSV</span>
+                    </button>
+
+                    <button onclick="window.print()" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-700 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 transition" title="Cetak atau simpan sebagai PDF">
+                        <i class="fa-solid fa-print"></i>
+                        <span class="hidden sm:inline">Cetak PDF</span>
+                    </button>
+
+                    <button id="themeToggle" class="p-2 rounded-lg text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 bg-slate-100 dark:bg-slate-800 transition" title="Ganti Tema Gelap / Terang">
+                        <i id="themeIcon" class="fa-solid fa-moon"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Container -->
+    <main class="flex-grow max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-6 space-y-6">
+
+        <!-- Header Identitas Mahasiswa Khusus Cetak PDF -->
+        <div id="printStudentHeader" class="hidden print:block p-4 mb-4 rounded-xl border-2 border-slate-300 bg-slate-50">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center gap-4">
+                    <img id="printProfileImg" src="" alt="Foto" class="w-16 h-16 rounded-xl object-cover border-2 border-brand-600 hidden">
+                    <div id="printAvatarPlaceholder" class="w-16 h-16 rounded-xl bg-slate-200 flex items-center justify-center text-slate-500 text-2xl font-bold">
+                        <i class="fa-solid fa-user-graduate"></i>
+                    </div>
+                    <div>
+                        <h2 id="printProfileName" class="text-base font-extrabold text-slate-900">Nama Mahasiswa</h2>
+                        <p class="text-xs text-slate-700">NIM: <span id="printProfileNim" class="font-bold">-</span> &bull; Kelas: <span id="printProfileClass" class="font-bold">-</span></p>
+                        <p class="text-xs text-slate-600">Prodi / Jurusan: <span id="printProfileMajor">-</span></p>
+                    </div>
+                </div>
+                <div class="text-right text-xs text-slate-600">
+                    <p id="printProfileCourse" class="font-bold text-slate-900">Mata Kuliah: Sistem Pendukung Keputusan</p>
+                    <p id="printProfileLecturer">Dosen Pengampu: -</p>
+                    <p id="printProfileCampus" class="font-semibold text-brand-700">Universitas / Perguruan Tinggi</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Notification Toast Banner -->
+        <div id="toastAlert" class="hidden transition-all duration-300 p-4 rounded-xl text-sm font-medium flex items-center justify-between shadow-sm">
+            <div class="flex items-center gap-3">
+                <i id="toastIcon" class="fa-solid fa-circle-check text-lg"></i>
+                <span id="toastMsg">Notifikasi</span>
+            </div>
+            <button onclick="hideToast()" class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+        </div>
+
+        <!-- Hero Winner Banner -->
+        <div class="relative overflow-hidden rounded-2xl bg-gradient-to-br from-indigo-900 via-brand-800 to-slate-900 text-white shadow-xl p-6 sm:p-8">
+            <div class="absolute -right-16 -top-16 w-64 h-64 bg-brand-500/20 rounded-full blur-3xl pointer-events-none"></div>
+            <div class="absolute right-1/4 -bottom-16 w-80 h-80 bg-indigo-500/10 rounded-full blur-2xl pointer-events-none"></div>
+
+            <div class="relative z-10 grid grid-cols-1 lg:grid-cols-12 gap-6 items-center">
+                <div class="lg:col-span-8 space-y-4">
+                    <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-semibold bg-amber-400/20 text-amber-300 border border-amber-400/30">
+                        <i class="fa-solid fa-trophy text-amber-400"></i>
+                        <span>HASIL REKOMENDASI TERBAIK METODE AHP</span>
+                    </div>
+
+                    <h1 class="text-2xl sm:text-4xl font-extrabold tracking-tight text-white leading-tight">
+                        Mobil Terpilih: <span id="heroWinnerName" class="text-amber-300 underline decoration-amber-400 decoration-wavy decoration-2">Suzuki Ertiga</span>
+                    </h1>
+
+                    <p class="text-slate-200 text-sm sm:text-base leading-relaxed max-w-2xl">
+                        Berdasarkan kalkulasi metode <strong class="text-white">Analytic Hierarchy Process (AHP)</strong> dari dataset Excel, <span id="heroWinnerDescName" class="font-bold text-amber-200">Suzuki Ertiga</span> menduduki peringkat pertama dengan skor komprehensif tertinggi <strong id="heroWinnerScore" class="text-amber-300">0.4814 (48.14%)</strong>, mengungguli 3 alternatif mobil lainnya.
+                    </p>
+
+                    <!-- Key highlights badges -->
+                    <div class="flex flex-wrap gap-2 pt-2">
+                        <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs bg-white/10 backdrop-blur-sm border border-white/10 text-slate-200">
+                            <i class="fa-solid fa-shield-halved text-emerald-400"></i> Keandalan Tertinggi (52.56%)
+                        </span>
+                        <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs bg-white/10 backdrop-blur-sm border border-white/10 text-slate-200">
+                            <i class="fa-solid fa-gas-pump text-sky-400"></i> Efisiensi BBM Unggul (39.77%)
+                        </span>
+                        <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs bg-white/10 backdrop-blur-sm border border-white/10 text-slate-200">
+                            <i class="fa-solid fa-palette text-pink-400"></i> Style Terbaik (43.65%)
+                        </span>
+                        <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs bg-emerald-500/20 border border-emerald-400/30 text-emerald-300">
+                            <i class="fa-solid fa-circle-check"></i> Seluruh Matriks Konsisten (CR &le; 0.10)
+                        </span>
+                    </div>
+                </div>
+
+                <!-- Winner Card Stat -->
+                <div class="lg:col-span-4 flex flex-col items-center justify-center p-6 rounded-xl bg-white/10 backdrop-blur-md border border-white/15 text-center">
+                    <div class="w-16 h-16 rounded-2xl bg-amber-400/20 border border-amber-400/40 flex items-center justify-center text-amber-400 text-3xl mb-3 shadow-inner">
+                        <i class="fa-solid fa-medal"></i>
+                    </div>
+                    <span class="text-xs uppercase tracking-wider font-semibold text-slate-300">Skor Prioritas Global</span>
+                    <span id="heroScoreBig" class="text-4xl font-extrabold text-white my-1">48.14%</span>
+                    <span class="text-xs text-emerald-300 font-medium flex items-center gap-1">
+                        <i class="fa-solid fa-check-circle"></i> Peringkat #1 dari 4 Alternatif
+                    </span>
+                </div>
+            </div>
+        </div>
+
+        <!-- 4 Quick KPI Summary Cards -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <!-- Card 1 -->
+            <div class="bg-white dark:bg-slate-800 p-5 rounded-xl border border-slate-200 dark:border-slate-700/60 shadow-sm flex items-center gap-4 transition hover:shadow-md">
+                <div class="w-12 h-12 rounded-xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800/60 flex items-center justify-center text-amber-600 dark:text-amber-400 text-xl">
+                    <i class="fa-solid fa-crown"></i>
+                </div>
+                <div>
+                    <p class="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide">Pilihan Terbaik</p>
+                    <h3 id="kpiWinner" class="text-lg font-bold text-slate-800 dark:text-white">Suzuki Ertiga</h3>
+                    <p class="text-xs text-amber-600 dark:text-amber-400 font-medium">Skor 0.4814 (Rank 1)</p>
+                </div>
+            </div>
+
+            <!-- Card 2 -->
+            <div class="bg-white dark:bg-slate-800 p-5 rounded-xl border border-slate-200 dark:border-slate-700/60 shadow-sm flex items-center gap-4 transition hover:shadow-md">
+                <div class="w-12 h-12 rounded-xl bg-brand-50 dark:bg-brand-950/40 border border-brand-200 dark:border-brand-800/60 flex items-center justify-center text-brand-600 dark:text-brand-400 text-xl">
+                    <i class="fa-solid fa-layer-group"></i>
+                </div>
+                <div>
+                    <p class="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide">Kriteria Dominan</p>
+                    <h3 class="text-lg font-bold text-slate-800 dark:text-white">Keandalan</h3>
+                    <p class="text-xs text-brand-600 dark:text-brand-400 font-medium">Bobot 55.71% (Prioritas Utama)</p>
+                </div>
+            </div>
+
+            <!-- Card 3 -->
+            <div class="bg-white dark:bg-slate-800 p-5 rounded-xl border border-slate-200 dark:border-slate-700/60 shadow-sm flex items-center gap-4 transition hover:shadow-md">
+                <div class="w-12 h-12 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800/60 flex items-center justify-center text-emerald-600 dark:text-emerald-400 text-xl">
+                    <i class="fa-solid fa-badge-check"></i>
+                </div>
+                <div>
+                    <p class="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide">Uji Konsistensi</p>
+                    <h3 class="text-lg font-bold text-emerald-600 dark:text-emerald-400">100% Valid</h3>
+                    <p class="text-xs text-slate-500 dark:text-slate-400 font-medium">Semua CR &le; 0.10 (Konsisten)</p>
+                </div>
+            </div>
+
+            <!-- Card 4 -->
+            <div class="bg-white dark:bg-slate-800 p-5 rounded-xl border border-slate-200 dark:border-slate-700/60 shadow-sm flex items-center gap-4 transition hover:shadow-md">
+                <div class="w-12 h-12 rounded-xl bg-purple-50 dark:bg-purple-950/40 border border-purple-200 dark:border-purple-800/60 flex items-center justify-center text-purple-600 dark:text-purple-400 text-xl">
+                    <i class="fa-solid fa-file-excel"></i>
+                </div>
+                <div>
+                    <p class="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide">Sumber Data</p>
+                    <h3 class="text-lg font-bold text-slate-800 dark:text-white">AHP Excel Terhubung</h3>
+                    <p class="text-xs text-purple-600 dark:text-purple-400 font-medium">AHP_Studi_Kasus_Mobil.xlsx</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Interactive Tab Navigation -->
+        <div class="border-b border-slate-200 dark:border-slate-700">
+            <nav class="flex space-x-2 sm:space-x-4 overflow-x-auto pb-1" aria-label="Tabs">
+                <button onclick="switchTab('dashboard')" id="tabBtn-dashboard" class="tab-btn active-tab inline-flex items-center gap-2 py-3 px-4 text-sm font-bold border-b-2 border-brand-600 text-brand-600 dark:text-brand-400 whitespace-nowrap transition">
+                    <i class="fa-solid fa-chart-pie"></i>
+                    <span>Dashboard & Grafik</span>
+                </button>
+
+                <button onclick="switchTab('matrices')" id="tabBtn-matrices" class="tab-btn inline-flex items-center gap-2 py-3 px-4 text-sm font-semibold border-b-2 border-transparent text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 whitespace-nowrap transition">
+                    <i class="fa-solid fa-table-cells"></i>
+                    <span>Matriks & Perhitungan AHP</span>
+                </button>
+
+                <button onclick="switchTab('synthesis')" id="tabBtn-synthesis" class="tab-btn inline-flex items-center gap-2 py-3 px-4 text-sm font-semibold border-b-2 border-transparent text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 whitespace-nowrap transition">
+                    <i class="fa-solid fa-calculator"></i>
+                    <span>Matriks Sintesis Akhir</span>
+                </button>
+
+                <button onclick="switchTab('simulator')" id="tabBtn-simulator" class="tab-btn inline-flex items-center gap-2 py-3 px-4 text-sm font-semibold border-b-2 border-transparent text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 whitespace-nowrap transition">
+                    <i class="fa-solid fa-sliders"></i>
+                    <span>Simulator & Sensitivitas</span>
+                    <span class="px-1.5 py-0.5 rounded text-[10px] bg-brand-100 text-brand-700 dark:bg-brand-900/60 dark:text-brand-300 font-bold">Interaktif</span>
+                </button>
+
+                <button onclick="switchTab('theory')" id="tabBtn-theory" class="tab-btn inline-flex items-center gap-2 py-3 px-4 text-sm font-semibold border-b-2 border-transparent text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 whitespace-nowrap transition">
+                    <i class="fa-solid fa-book-open"></i>
+                    <span>Teori & Struktur AHP</span>
+                </button>
+            </nav>
+        </div>
+
+        <!-- ==================== TAB 1: DASHBOARD & GRAFIK ==================== -->
+        <section id="tab-dashboard" class="tab-content space-y-6">
+            <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+                <!-- Ranking List Table -->
+                <div class="lg:col-span-7 bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700/60 p-6 shadow-sm">
+                    <div class="flex items-center justify-between mb-5">
+                        <div>
+                            <h2 class="text-lg font-bold text-slate-800 dark:text-white flex items-center gap-2">
+                                <i class="fa-solid fa-ranking-star text-amber-500"></i>
+                                <span>Hasil Perangkingan Alternatif Mobil</span>
+                            </h2>
+                            <p class="text-xs text-slate-500 dark:text-slate-400">Urutan prioritas mobil berdasarkan sintesis seluruh kriteria AHP</p>
+                        </div>
+                        <span class="text-xs px-2.5 py-1 rounded-full bg-slate-100 dark:bg-slate-700 font-medium text-slate-600 dark:text-slate-300">
+                            4 Alternatif
+                        </span>
+                    </div>
+
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left text-sm">
+                            <thead>
+                                <tr class="text-xs uppercase text-slate-400 border-b border-slate-200 dark:border-slate-700 pb-2">
+                                    <th class="py-3 px-2">Peringkat</th>
+                                    <th class="py-3 px-3">Mobil Alternatif</th>
+                                    <th class="py-3 px-3">Nilai Skor</th>
+                                    <th class="py-3 px-3 text-right">Persentase</th>
+                                    <th class="py-3 px-3">Status</th>
+                                </tr>
+                            </thead>
+                            <tbody id="rankingTableBody" class="divide-y divide-slate-100 dark:divide-slate-700/50">
+                                <!-- Populated dynamically by JavaScript -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Doughnut Chart: Criteria Weights -->
+                <div class="lg:col-span-5 bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700/60 p-6 shadow-sm flex flex-col justify-between">
+                    <div>
+                        <div class="flex items-center justify-between mb-2">
+                            <h2 class="text-lg font-bold text-slate-800 dark:text-white flex items-center gap-2">
+                                <i class="fa-solid fa-chart-pie text-brand-500"></i>
+                                <span>Distribusi Bobot Kriteria</span>
+                            </h2>
+                            <span class="text-xs text-emerald-600 dark:text-emerald-400 font-semibold bg-emerald-50 dark:bg-emerald-950/40 px-2 py-0.5 rounded">
+                                CR = 2.02% &check;
+                            </span>
+                        </div>
+                        <p class="text-xs text-slate-500 dark:text-slate-400 mb-4">Proporsi kepentingan kriteria hasil perbandingan berpasangan AHP</p>
+                        <div class="relative h-56 flex items-center justify-center">
+                            <canvas id="chartCriteriaDoughnut"></canvas>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-3 gap-2 mt-4 pt-4 border-t border-slate-100 dark:border-slate-700 text-center">
+                        <div class="p-2 rounded-lg bg-pink-50 dark:bg-pink-950/30 border border-pink-100 dark:border-pink-900/40">
+                            <span class="block text-[11px] font-semibold text-pink-700 dark:text-pink-300">Style (S)</span>
+                            <span class="text-sm font-extrabold text-pink-800 dark:text-pink-200">32.02%</span>
+                        </div>
+                        <div class="p-2 rounded-lg bg-brand-50 dark:bg-brand-950/30 border border-brand-100 dark:border-brand-900/40">
+                            <span class="block text-[11px] font-semibold text-brand-700 dark:text-brand-300">Keandalan (K)</span>
+                            <span class="text-sm font-extrabold text-brand-800 dark:text-brand-200">55.71%</span>
+                        </div>
+                        <div class="p-2 rounded-lg bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-100 dark:border-emerald-900/40">
+                            <span class="block text-[11px] font-semibold text-emerald-700 dark:text-emerald-300">BBM (B)</span>
+                            <span class="text-sm font-extrabold text-emerald-800 dark:text-emerald-200">12.26%</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 2 Big Visual Charts: Bar & Radar -->
+            <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+                <!-- Stacked Bar: Contribution per Car -->
+                <div class="lg:col-span-7 bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700/60 p-6 shadow-sm">
+                    <div class="flex items-center justify-between mb-4">
+                        <div>
+                            <h2 class="text-lg font-bold text-slate-800 dark:text-white flex items-center gap-2">
+                                <i class="fa-solid fa-chart-column text-indigo-500"></i>
+                                <span>Dekomposisi Kontribusi Kriteria</span>
+                            </h2>
+                            <p class="text-xs text-slate-500 dark:text-slate-400">Porsi nilai Style, Keandalan, dan BBM pada total skor masing-masing mobil</p>
+                        </div>
+                    </div>
+                    <div class="relative h-72">
+                        <canvas id="chartStackedScores"></canvas>
+                    </div>
+                </div>
+
+                <!-- Radar Chart: Multi-criteria Profile -->
+                <div class="lg:col-span-5 bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700/60 p-6 shadow-sm">
+                    <div class="flex items-center justify-between mb-4">
+                        <div>
+                            <h2 class="text-lg font-bold text-slate-800 dark:text-white flex items-center gap-2">
+                                <i class="fa-solid fa-hexagon-nodes text-purple-500"></i>
+                                <span>Radar Profil Kriteria</span>
+                            </h2>
+                            <p class="text-xs text-slate-500 dark:text-slate-400">Perbandingan kekuatan performa 4 mobil di setiap kriteria</p>
+                        </div>
+                    </div>
+                    <div class="relative h-72 flex items-center justify-center">
+                        <canvas id="chartRadar"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Consistency Summary Matrix Table -->
+            <div class="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700/60 p-6 shadow-sm">
+                <div class="flex items-center justify-between mb-4">
+                    <div>
+                        <h2 class="text-lg font-bold text-slate-800 dark:text-white flex items-center gap-2">
+                            <i class="fa-solid fa-check-double text-emerald-500"></i>
+                            <span>Ringkasan Uji Konsistensi (Consistency Ratio - CR)</span>
+                        </h2>
+                        <p class="text-xs text-slate-500 dark:text-slate-400">Ketentuan Thomas L. Saaty: Matriks dinyatakan KONSISTEN jika Rasio Konsistensi (CR) &le; 0.10 (10%)</p>
+                    </div>
+                    <span class="px-3 py-1 rounded-full text-xs font-bold bg-emerald-100 text-emerald-800 dark:bg-emerald-900/60 dark:text-emerald-300 border border-emerald-300">
+                        <i class="fa-solid fa-shield-check mr-1"></i> Semua Matriks Lolos Uji
+                    </span>
+                </div>
+
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left text-sm">
+                        <thead>
+                            <tr class="text-xs uppercase text-slate-400 border-b border-slate-200 dark:border-slate-700">
+                                <th class="py-3 px-3">Nama Matriks Perbandingan</th>
+                                <th class="py-3 px-3 text-center">&lambda; Max</th>
+                                <th class="py-3 px-3 text-center">CI (Index)</th>
+                                <th class="py-3 px-3 text-center">RI (Saaty)</th>
+                                <th class="py-3 px-3 text-center">CR (Ratio)</th>
+                                <th class="py-3 px-3 text-center">CR (%)</th>
+                                <th class="py-3 px-3 text-center">Kesimpulan</th>
+                            </tr>
+                        </thead>
+                        <tbody id="consistencySummaryTableBody" class="divide-y divide-slate-100 dark:divide-slate-700/50 font-mono text-xs">
+                            <!-- Populated dynamically by JS -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+        <!-- ==================== TAB 2: MATRIKS & PERHITUNGAN AHP ==================== -->
+        <section id="tab-matrices" class="tab-content hidden space-y-6">
+            <!-- Sub-tab Bar -->
+            <div class="flex items-center gap-2 p-1 bg-slate-200/80 dark:bg-slate-800 rounded-xl max-w-full overflow-x-auto">
+                <button onclick="switchSubMatrix('criteria')" id="subTabBtn-criteria" class="subtab-btn active-subtab px-4 py-2 rounded-lg text-xs font-bold bg-white dark:bg-slate-700 text-brand-600 dark:text-brand-300 shadow-sm transition whitespace-nowrap">
+                    1. Kriteria vs Kriteria (S, K, B)
+                </button>
+                <button onclick="switchSubMatrix('style')" id="subTabBtn-style" class="subtab-btn px-4 py-2 rounded-lg text-xs font-semibold text-slate-600 dark:text-slate-300 hover:text-slate-900 transition whitespace-nowrap">
+                    2. Alternatif - Kriteria Style
+                </button>
+                <button onclick="switchSubMatrix('keandalan')" id="subTabBtn-keandalan" class="subtab-btn px-4 py-2 rounded-lg text-xs font-semibold text-slate-600 dark:text-slate-300 hover:text-slate-900 transition whitespace-nowrap">
+                    3. Alternatif - Kriteria Keandalan
+                </button>
+                <button onclick="switchSubMatrix('bbm')" id="subTabBtn-bbm" class="subtab-btn px-4 py-2 rounded-lg text-xs font-semibold text-slate-600 dark:text-slate-300 hover:text-slate-900 transition whitespace-nowrap">
+                    4. Alternatif - Konsumsi BBM
+                </button>
+            </div>
+
+            <!-- Dynamic Sub-Matrix Container -->
+            <div id="subMatrixContainer" class="space-y-6">
+                <!-- Submatrices will be populated dynamically by JS -->
+            </div>
+        </section>
+
+        <!-- ==================== TAB 3: MATRIKS SINTESIS AKHIR ==================== -->
+        <section id="tab-synthesis" class="tab-content hidden space-y-6">
+            <div class="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700/60 p-6 shadow-sm">
+                <div class="pb-4 border-b border-slate-200 dark:border-slate-700">
+                    <span class="text-xs font-bold text-brand-600 dark:text-brand-400 uppercase tracking-wider">Tahap Akhir (Sintesis)</span>
+                    <h3 class="text-xl font-extrabold text-slate-800 dark:text-white">Perkalian Bobot Kriteria & Bobot Alternatif</h3>
+                    <p class="text-xs text-slate-500 dark:text-slate-400">
+                        Skor Akhir didapatkan melalui persamaan: 
+                        <code class="px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-700 text-brand-600 dark:text-brand-300 font-mono text-xs font-semibold">
+                            Skor_i = &sum; (Bobot_Kriteria_j &times; Bobot_Alternatif_ij)
+                        </code>
+                    </p>
+                </div>
+
+                <div class="mt-6 overflow-x-auto">
+                    <table class="w-full text-center text-sm border-collapse">
+                        <thead>
+                            <tr class="bg-slate-100 dark:bg-slate-750 text-xs font-bold text-slate-600 dark:text-slate-300">
+                                <th class="p-3 text-left">Mobil Alternatif</th>
+                                <th class="p-3">
+                                    <span class="block">Bobot Style (S)</span>
+                                    <span class="text-brand-600 dark:text-brand-400 text-xs">w = 0.3202</span>
+                                </th>
+                                <th class="p-3">
+                                    <span class="block">Bobot Keandalan (K)</span>
+                                    <span class="text-brand-600 dark:text-brand-400 text-xs">w = 0.5571</span>
+                                </th>
+                                <th class="p-3">
+                                    <span class="block">Bobot BBM (B)</span>
+                                    <span class="text-brand-600 dark:text-brand-400 text-xs">w = 0.1226</span>
+                                </th>
+                                <th class="p-3 bg-brand-50 dark:bg-brand-950/40 text-brand-900 dark:text-brand-200">Total Skor Akhir</th>
+                                <th class="p-3 bg-amber-50 dark:bg-amber-950/40 text-amber-900 dark:text-amber-200">Persentase</th>
+                                <th class="p-3 bg-slate-200 dark:bg-slate-700">Peringkat</th>
+                            </tr>
+                        </thead>
+                        <tbody id="synthesisTableBody" class="divide-y divide-slate-100 dark:divide-slate-700 font-mono text-xs">
+                            <!-- Populated dynamically by JS -->
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="mt-6 p-4 rounded-xl bg-indigo-50 dark:bg-indigo-950/40 border border-indigo-200 dark:border-indigo-800 text-xs text-indigo-900 dark:text-indigo-200 space-y-2">
+                    <p class="font-bold flex items-center gap-2 text-sm">
+                        <i class="fa-solid fa-lightbulb text-amber-500"></i>
+                        <span>Analisis Keputusan Akhir:</span>
+                    </p>
+                    <p>
+                        <strong>Suzuki Ertiga</strong> mendapatkan skor tertinggi <strong>(0.4814)</strong> karena kriteria <em>Keandalan</em> memiliki bobot terbesar dalam sistem (55.71%), dan Ertiga mendominasi perbandingan keandalan dengan bobot lokal 52.56%. Ditambah lagi Ertiga juga unggul pada kriteria Style (43.65%) dan Konsumsi BBM (39.77%), menjadikannya pilihan mutlak paling optimal.
+                    </p>
+                </div>
+            </div>
+        </section>
+
+        <!-- ==================== TAB 4: SIMULATOR & SENSITIVITAS ==================== -->
+        <section id="tab-simulator" class="tab-content hidden space-y-6">
+            <div class="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700/60 p-6 shadow-sm">
+                <div class="flex flex-col sm:flex-row sm:items-center justify-between pb-4 border-b border-slate-200 dark:border-slate-700 gap-2">
+                    <div>
+                        <span class="text-xs font-bold text-brand-600 dark:text-brand-400 uppercase tracking-wider">Fitur Interaktif & Sensitivitas</span>
+                        <h3 class="text-xl font-extrabold text-slate-800 dark:text-white">Simulasi Perubahan Bobot Kriteria (What-If Analysis)</h3>
+                        <p class="text-xs text-slate-500 dark:text-slate-400">Geser slider di bawah ini untuk menguji bagaimana jika prioritas kriteria diubah secara dinamis.</p>
+                    </div>
+                    <button id="btnResetSimulation" onclick="resetSliders()" class="px-3 py-1.5 rounded-lg text-xs font-bold text-slate-700 dark:text-slate-300 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 transition">
+                        <i class="fa-solid fa-rotate-left mr-1"></i> Reset ke Bobot Asli
+                    </button>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6 my-6 p-4 rounded-xl bg-slate-50 dark:bg-slate-750">
+                    <!-- Slider 1: Style -->
+                    <div class="space-y-2">
+                        <div class="flex justify-between items-center">
+                            <label class="text-xs font-bold text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
+                                <span class="w-3 h-3 rounded-full bg-pink-500 inline-block"></span>
+                                <span>Style (S)</span>
+                            </label>
+                            <span id="labelSimWeightS" class="text-xs font-mono font-bold text-pink-600 dark:text-pink-400">32.02%</span>
+                        </div>
+                        <input id="sliderWeightS" type="range" min="0" max="100" value="32" class="w-full h-2 bg-slate-200 dark:bg-slate-700 rounded-lg appearance-none cursor-pointer accent-pink-500">
+                        <p class="text-[10px] text-slate-400">Default Excel: 32.02%</p>
+                    </div>
+
+                    <!-- Slider 2: Keandalan -->
+                    <div class="space-y-2">
+                        <div class="flex justify-between items-center">
+                            <label class="text-xs font-bold text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
+                                <span class="w-3 h-3 rounded-full bg-brand-500 inline-block"></span>
+                                <span>Keandalan (K)</span>
+                            </label>
+                            <span id="labelSimWeightK" class="text-xs font-mono font-bold text-brand-600 dark:text-brand-400">55.71%</span>
+                        </div>
+                        <input id="sliderWeightK" type="range" min="0" max="100" value="56" class="w-full h-2 bg-slate-200 dark:bg-slate-700 rounded-lg appearance-none cursor-pointer accent-brand-500">
+                        <p class="text-[10px] text-slate-400">Default Excel: 55.71%</p>
+                    </div>
+
+                    <!-- Slider 3: BBM -->
+                    <div class="space-y-2">
+                        <div class="flex justify-between items-center">
+                            <label class="text-xs font-bold text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
+                                <span class="w-3 h-3 rounded-full bg-emerald-500 inline-block"></span>
+                                <span>Konsumsi BBM (B)</span>
+                            </label>
+                            <span id="labelSimWeightB" class="text-xs font-mono font-bold text-emerald-600 dark:text-emerald-400">12.26%</span>
+                        </div>
+                        <input id="sliderWeightB" type="range" min="0" max="100" value="12" class="w-full h-2 bg-slate-200 dark:bg-slate-700 rounded-lg appearance-none cursor-pointer accent-emerald-500">
+                        <p class="text-[10px] text-slate-400">Default Excel: 12.26%</p>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 mt-6">
+                    <div class="lg:col-span-6 bg-slate-50 dark:bg-slate-750 p-5 rounded-xl border border-slate-200 dark:border-slate-700">
+                        <h4 class="text-xs font-bold text-slate-500 uppercase tracking-wider mb-3">Ranking Real-Time Hasil Simulasi</h4>
+                        <div id="simulatedRankingList" class="space-y-2.5">
+                            <!-- Injected by JS -->
+                        </div>
+                    </div>
+
+                    <div class="lg:col-span-6 bg-slate-50 dark:bg-slate-750 p-5 rounded-xl border border-slate-200 dark:border-slate-700">
+                        <h4 class="text-xs font-bold text-slate-500 uppercase tracking-wider mb-3">Grafik Skor Simulasi</h4>
+                        <div class="relative h-60">
+                            <canvas id="chartSimulatedBar"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ==================== TAB 5: TEORI & STRUKTUR AHP ==================== -->
+        <section id="tab-theory" class="tab-content hidden space-y-6">
+            <!-- Hierarchy Diagram -->
+            <div class="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700/60 p-6 shadow-sm">
+                <div class="mb-6">
+                    <span class="text-xs font-bold text-brand-600 dark:text-brand-400 uppercase tracking-wider">Arsitektur Keputusan</span>
+                    <h3 class="text-xl font-extrabold text-slate-800 dark:text-white">Struktur Hierarki Keputusan (AHP Tree)</h3>
+                    <p class="text-xs text-slate-500 dark:text-slate-400">Pohon hierarki 3 tingkat dari Tujuan (Goal), Kriteria, hingga Alternatif Pilihan</p>
+                </div>
+
+                <div class="p-6 bg-slate-50 dark:bg-slate-750 rounded-xl flex flex-col items-center space-y-6">
+                    <!-- Level 0: Goal -->
+                    <div class="w-full max-w-md p-4 rounded-xl bg-gradient-to-r from-brand-600 to-indigo-600 text-white text-center shadow-md">
+                        <span class="text-[11px] font-bold uppercase tracking-wider opacity-90 block">Level 0: Fokus / Goal</span>
+                        <h4 class="text-base font-extrabold mt-0.5">Pemilihan Mobil Terbaik</h4>
+                        <span class="text-xs text-indigo-100">Memilih alternatif mobil terbaik untuk keluarga</span>
+                    </div>
+
+                    <div class="w-0.5 h-6 bg-slate-300 dark:bg-slate-600"></div>
+
+                    <!-- Level 1: Criteria -->
+                    <div class="w-full">
+                        <span class="text-center block text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">Level 1: Kriteria Keputusan (3 Kriteria)</span>
+                        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 max-w-2xl mx-auto">
+                            <div class="p-3.5 rounded-xl bg-white dark:bg-slate-800 border-2 border-pink-400 text-center shadow-sm">
+                                <span class="text-xs font-bold text-pink-600 dark:text-pink-400 block">Kriteria 1</span>
+                                <h5 class="text-sm font-bold text-slate-800 dark:text-white">Style (S)</h5>
+                                <span class="text-xs font-extrabold text-pink-600 mt-1 inline-block">Bobot: 32.02%</span>
+                            </div>
+                            <div class="p-3.5 rounded-xl bg-white dark:bg-slate-800 border-2 border-brand-500 text-center shadow-sm">
+                                <span class="text-xs font-bold text-brand-600 dark:text-brand-400 block">Kriteria 2 (Utama)</span>
+                                <h5 class="text-sm font-bold text-slate-800 dark:text-white">Keandalan (K)</h5>
+                                <span class="text-xs font-extrabold text-brand-600 mt-1 inline-block">Bobot: 55.71%</span>
+                            </div>
+                            <div class="p-3.5 rounded-xl bg-white dark:bg-slate-800 border-2 border-emerald-500 text-center shadow-sm">
+                                <span class="text-xs font-bold text-emerald-600 dark:text-emerald-400 block">Kriteria 3</span>
+                                <h5 class="text-sm font-bold text-slate-800 dark:text-white">Konsumsi BBM (B)</h5>
+                                <span class="text-xs font-extrabold text-emerald-600 mt-1 inline-block">Bobot: 12.26%</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="w-0.5 h-6 bg-slate-300 dark:bg-slate-600"></div>
+
+                    <!-- Level 2: Alternatives -->
+                    <div class="w-full">
+                        <span class="text-center block text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">Level 2: Alternatif Pilihan (4 Mobil)</span>
+                        <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 max-w-3xl mx-auto">
+                            <div class="p-3 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-center shadow-sm">
+                                <i class="fa-solid fa-car text-slate-400 mb-1 block"></i>
+                                <h6 class="font-bold text-xs text-slate-800 dark:text-white">Toyota Avanza</h6>
+                                <span class="text-[11px] text-slate-500">Skor: 14.80%</span>
+                            </div>
+                            <div class="p-3 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-center shadow-sm">
+                                <i class="fa-solid fa-car text-slate-400 mb-1 block"></i>
+                                <h6 class="font-bold text-xs text-slate-800 dark:text-white">Daihatsu Xenia</h6>
+                                <span class="text-[11px] text-slate-500">Skor: 9.52%</span>
+                            </div>
+                            <div class="p-3 rounded-xl bg-amber-50 dark:bg-amber-950/40 border-2 border-amber-400 text-center shadow-sm">
+                                <i class="fa-solid fa-trophy text-amber-500 mb-1 block"></i>
+                                <h6 class="font-bold text-xs text-amber-900 dark:text-amber-200">Suzuki Ertiga</h6>
+                                <span class="text-[11px] font-bold text-amber-600 dark:text-amber-400">Skor: 48.14% (Juara 1)</span>
+                            </div>
+                            <div class="p-3 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-center shadow-sm">
+                                <i class="fa-solid fa-car text-slate-400 mb-1 block"></i>
+                                <h6 class="font-bold text-xs text-slate-800 dark:text-white">Grand Livina</h6>
+                                <span class="text-[11px] text-slate-500">Skor: 27.53%</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Saaty Scale & Formulas Reference -->
+            <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+                <!-- Saaty Scale Reference -->
+                <div class="lg:col-span-7 bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700/60 p-6 shadow-sm">
+                    <h3 class="text-base font-bold text-slate-800 dark:text-white mb-2 flex items-center gap-2">
+                        <i class="fa-solid fa-scale-balanced text-brand-600"></i>
+                        <span>Skala Perbandingan Berpasangan Saaty (1-9)</span>
+                    </h3>
+                    <p class="text-xs text-slate-500 dark:text-slate-400 mb-4">Dasar penetapan nilai preferensi kuantitatif antar elemen dalam AHP</p>
+
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left text-xs">
+                            <thead>
+                                <tr class="bg-slate-100 dark:bg-slate-750 font-bold text-slate-600 dark:text-slate-300">
+                                    <th class="p-2.5 w-16 text-center">Intensitas</th>
+                                    <th class="p-2.5">Keterangan Definisi</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-slate-100 dark:divide-slate-700">
+                                <tr><td class="p-2.5 text-center font-bold text-brand-600 dark:text-brand-400 bg-slate-50 dark:bg-slate-750/50">1</td><td class="p-2.5 text-slate-700 dark:text-slate-300">Sama penting (Equal Importance)</td></tr>
+                                <tr><td class="p-2.5 text-center font-bold text-brand-600 dark:text-brand-400 bg-slate-50 dark:bg-slate-750/50">2</td><td class="p-2.5 text-slate-700 dark:text-slate-300">Mendekati sedikit lebih penting (Intermediate)</td></tr>
+                                <tr><td class="p-2.5 text-center font-bold text-brand-600 dark:text-brand-400 bg-slate-50 dark:bg-slate-750/50">3</td><td class="p-2.5 text-slate-700 dark:text-slate-300">Sedikit lebih penting (Moderate Importance)</td></tr>
+                                <tr><td class="p-2.5 text-center font-bold text-brand-600 dark:text-brand-400 bg-slate-50 dark:bg-slate-750/50">4</td><td class="p-2.5 text-slate-700 dark:text-slate-300">Mendekati lebih penting (Intermediate)</td></tr>
+                                <tr><td class="p-2.5 text-center font-bold text-brand-600 dark:text-brand-400 bg-slate-50 dark:bg-slate-750/50">5</td><td class="p-2.5 text-slate-700 dark:text-slate-300">Lebih penting (Strong Importance)</td></tr>
+                                <tr><td class="p-2.5 text-center font-bold text-brand-600 dark:text-brand-400 bg-slate-50 dark:bg-slate-750/50">6</td><td class="p-2.5 text-slate-700 dark:text-slate-300">Mendekati sangat penting (Intermediate)</td></tr>
+                                <tr><td class="p-2.5 text-center font-bold text-brand-600 dark:text-brand-400 bg-slate-50 dark:bg-slate-750/50">7</td><td class="p-2.5 text-slate-700 dark:text-slate-300">Sangat penting (Very Strong / Demonstrated)</td></tr>
+                                <tr><td class="p-2.5 text-center font-bold text-brand-600 dark:text-brand-400 bg-slate-50 dark:bg-slate-750/50">8</td><td class="p-2.5 text-slate-700 dark:text-slate-300">Mendekati mutlak lebih penting (Intermediate)</td></tr>
+                                <tr><td class="p-2.5 text-center font-bold text-brand-600 dark:text-brand-400 bg-slate-50 dark:bg-slate-750/50">9</td><td class="p-2.5 text-slate-700 dark:text-slate-300">Mutlak lebih penting (Extreme Importance)</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Mathematical Formulas & RI Table -->
+                <div class="lg:col-span-5 bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700/60 p-6 shadow-sm space-y-5">
+                    <div>
+                        <h3 class="text-base font-bold text-slate-800 dark:text-white mb-2 flex items-center gap-2">
+                            <i class="fa-solid fa-square-root-variable text-indigo-500"></i>
+                            <span>Rumus Matematis AHP</span>
+                        </h3>
+                        <div class="p-3 bg-slate-50 dark:bg-slate-750 rounded-xl space-y-2 text-xs font-mono">
+                            <div class="p-2 bg-white dark:bg-slate-800 rounded border border-slate-200 dark:border-slate-700">
+                                <span class="text-slate-400 font-sans block text-[10px]">1. Normalisasi Matriks:</span>
+                                <code>r_ij = a_ij / &sum;(a_kj)</code>
+                            </div>
+                            <div class="p-2 bg-white dark:bg-slate-800 rounded border border-slate-200 dark:border-slate-700">
+                                <span class="text-slate-400 font-sans block text-[10px]">2. Bobot Prioritas:</span>
+                                <code>w_i = (1 / n) &times; &sum;(r_ij)</code>
+                            </div>
+                            <div class="p-2 bg-white dark:bg-slate-800 rounded border border-slate-200 dark:border-slate-700">
+                                <span class="text-slate-400 font-sans block text-[10px]">3. Indeks Konsistensi:</span>
+                                <code>CI = (&lambda;_max - n) / (n - 1)</code>
+                            </div>
+                            <div class="p-2 bg-white dark:bg-slate-800 rounded border border-slate-200 dark:border-slate-700">
+                                <span class="text-slate-400 font-sans block text-[10px]">4. Rasio Konsistensi:</span>
+                                <code>CR = CI / RI &le; 0.10 (Konsisten)</code>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- RI Table Mini -->
+                    <div>
+                        <h4 class="text-xs font-bold text-slate-700 dark:text-slate-300 mb-2">Tabel Indeks Acak (Random Index - RI)</h4>
+                        <div class="grid grid-cols-5 gap-1.5 text-center text-xs font-mono">
+                            <div class="p-1.5 rounded bg-slate-100 dark:bg-slate-750"><span class="block text-[10px] text-slate-400 font-sans">n=1</span>0.00</div>
+                            <div class="p-1.5 rounded bg-slate-100 dark:bg-slate-750"><span class="block text-[10px] text-slate-400 font-sans">n=2</span>0.00</div>
+                            <div class="p-1.5 rounded bg-brand-50 dark:bg-brand-950 font-bold text-brand-600 dark:text-brand-400"><span class="block text-[10px] text-slate-400 font-sans">n=3</span>0.58</div>
+                            <div class="p-1.5 rounded bg-brand-50 dark:bg-brand-950 font-bold text-brand-600 dark:text-brand-400"><span class="block text-[10px] text-slate-400 font-sans">n=4</span>0.90</div>
+                            <div class="p-1.5 rounded bg-slate-100 dark:bg-slate-750"><span class="block text-[10px] text-slate-400 font-sans">n=5</span>1.12</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-white dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800 py-6 mt-12 transition-colors">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between text-xs text-slate-500 dark:text-slate-400 gap-3">
+            <div class="flex items-center gap-2">
+                <i class="fa-solid fa-graduation-cap text-brand-600 dark:text-brand-400 text-sm"></i>
+                <span>Tugas Sistem Pendukung Keputusan (SPK) - Metode Analytic Hierarchy Process (AHP)</span>
+            </div>
+            <div>
+                <span>Studi Kasus: <strong>Pemilihan Mobil Terbaik</strong> (Avanza, Xenia, Ertiga, Grand Livina)</span>
+            </div>
+        </div>
+    </footer>
+
+    <!-- ==================== FLOATING BIODATA WIDGET (Pojok Bawah Kiri) ==================== -->
+    <div id="biodataFloatingContainer" class="fixed bottom-5 left-5 z-40 no-print">
+        <!-- Compact Pill Button -->
+        <button id="btnToggleBiodata" type="button" class="flex items-center gap-2.5 px-3.5 py-2 rounded-full bg-white/95 dark:bg-slate-800/95 backdrop-blur-md border border-slate-200 dark:border-slate-700 shadow-xl hover:shadow-2xl transition-all duration-200 text-slate-800 dark:text-white group" title="Klik untuk membuka Biodata Mahasiswa">
+            <div class="relative w-8 h-8 rounded-full overflow-hidden bg-gradient-to-tr from-brand-600 to-indigo-500 flex items-center justify-center text-white text-xs font-bold ring-2 ring-brand-500/30">
+                <img id="pillProfileImg" src="" alt="Foto" class="w-full h-full object-cover hidden">
+                <i id="pillProfileIcon" class="fa-solid fa-user-graduate"></i>
+            </div>
+            <div class="text-left pr-1">
+                <span id="pillProfileName" class="block text-xs font-extrabold leading-tight text-slate-800 dark:text-white group-hover:text-brand-600 dark:group-hover:text-brand-400 transition">Biodata Mahasiswa</span>
+                <span id="pillProfileClass" class="block text-[10px] text-slate-500 dark:text-slate-400 font-medium">Klik untuk lihat / edit</span>
+            </div>
+            <i id="pillChevron" class="fa-solid fa-chevron-up text-xs text-slate-400 group-hover:text-brand-600 transition"></i>
+        </button>
+
+        <!-- Expanded Biodata Popup Card -->
+        <div id="biodataExpandedCard" class="hidden absolute bottom-14 left-0 w-80 sm:w-96 rounded-2xl bg-white dark:bg-slate-800 backdrop-blur-xl border border-slate-200 dark:border-slate-700 shadow-2xl p-5 text-slate-800 dark:text-slate-100 transition-all duration-200 origin-bottom-left">
+            <!-- Header -->
+            <div class="flex items-center justify-between pb-3 border-b border-slate-200 dark:border-slate-700">
+                <div class="flex items-center gap-2">
+                    <span class="w-2.5 h-2.5 rounded-full bg-emerald-500 inline-block animate-pulse"></span>
+                    <h4 class="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">Biodata Penyusun Tugas</h4>
+                </div>
+                <div class="flex items-center gap-1">
+                    <button id="btnOpenEditBiodata" type="button" class="p-1.5 rounded-lg text-xs text-brand-600 dark:text-brand-400 hover:bg-brand-50 dark:hover:bg-brand-950/50 transition font-semibold flex items-center gap-1" title="Ubah Nama, NIM, Kelas, Foto">
+                        <i class="fa-solid fa-pen-to-square"></i>
+                        <span>Edit</span>
+                    </button>
+                    <button id="btnCloseBiodataCard" type="button" class="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700 transition">
+                        <i class="fa-solid fa-xmark"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Profile Overview (View Mode) -->
+            <div id="biodataViewMode" class="mt-4 space-y-4">
+                <div class="flex items-center gap-3.5">
+                    <div class="relative group cursor-pointer" onclick="document.getElementById('profilePhotoInput').click()" title="Klik untuk mengganti foto profil">
+                        <div class="w-16 h-16 rounded-2xl overflow-hidden bg-gradient-to-tr from-brand-600 to-indigo-500 flex items-center justify-center text-white text-2xl font-bold border-2 border-brand-500 shadow-md">
+                            <img id="cardProfileImg" src="" alt="Foto Mahasiswa" class="w-full h-full object-cover hidden">
+                            <i id="cardProfileIcon" class="fa-solid fa-user-graduate"></i>
+                        </div>
+                        <div class="absolute inset-0 bg-slate-900/60 rounded-2xl flex flex-col items-center justify-center text-white text-[10px] opacity-0 group-hover:opacity-100 transition-opacity">
+                            <i class="fa-solid fa-camera mb-0.5"></i>
+                            <span>Ganti</span>
+                        </div>
+                    </div>
+
+                    <div>
+                        <h3 id="cardProfileName" class="text-base font-extrabold text-slate-900 dark:text-white leading-tight">Nama Mahasiswa</h3>
+                        <p class="text-xs text-brand-600 dark:text-brand-400 font-semibold mt-0.5">NIM: <span id="cardProfileNim">202401001</span></p>
+                        <span id="cardProfileClassBadge" class="inline-block mt-1 text-[10px] px-2 py-0.5 rounded-full font-bold bg-brand-50 dark:bg-brand-950/60 text-brand-700 dark:text-brand-300 border border-brand-200 dark:border-brand-800">
+                            Kelas TI-A
+                        </span>
+                    </div>
+                </div>
+
+                <!-- Info Details List -->
+                <div class="space-y-1.5 pt-2 text-xs divide-y divide-slate-100 dark:divide-slate-700">
+                    <div class="flex justify-between py-1.5">
+                        <span class="text-slate-400">Program Studi:</span>
+                        <span id="cardProfileMajor" class="font-semibold text-slate-700 dark:text-slate-300 text-right">Teknik Informatika</span>
+                    </div>
+                    <div class="flex justify-between py-1.5">
+                        <span class="text-slate-400">Mata Kuliah:</span>
+                        <span id="cardProfileCourse" class="font-semibold text-slate-700 dark:text-slate-300 text-right">Sistem Pendukung Keputusan</span>
+                    </div>
+                    <div class="flex justify-between py-1.5">
+                        <span class="text-slate-400">Dosen Pengampu:</span>
+                        <span id="cardProfileLecturer" class="font-semibold text-slate-700 dark:text-slate-300 text-right">Nama Dosen, M.Kom.</span>
+                    </div>
+                    <div class="flex justify-between py-1.5">
+                        <span class="text-slate-400">Universitas:</span>
+                        <span id="cardProfileCampus" class="font-semibold text-slate-700 dark:text-slate-300 text-right">Universitas / Kampus</span>
+                    </div>
+                </div>
+
+                <!-- Actions -->
+                <div class="pt-2 flex items-center justify-between gap-2 border-t border-slate-100 dark:border-slate-700">
+                    <button type="button" onclick="document.getElementById('profilePhotoInput').click()" class="text-[11px] text-brand-600 dark:text-brand-400 hover:underline flex items-center gap-1 font-semibold">
+                        <i class="fa-solid fa-camera"></i> Pasang / Ganti Foto
+                    </button>
+                    <button type="button" onclick="window.print()" class="text-[11px] text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-white flex items-center gap-1 font-medium">
+                        <i class="fa-solid fa-print"></i> Cetak PDF
+                    </button>
+                </div>
+            </div>
+
+            <!-- Profile Edit Form (Inline Mode) -->
+            <form id="biodataEditForm" class="hidden mt-4 space-y-3 text-xs">
+                <div>
+                    <label class="block text-[11px] font-bold text-slate-600 dark:text-slate-300 mb-1">Nama Lengkap</label>
+                    <input type="text" id="inputProfileName" class="w-full px-2.5 py-1.5 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-750 text-slate-800 dark:text-white text-xs focus:ring-2 focus:ring-brand-500 focus:outline-none" required placeholder="Contoh: Budi Pratama">
+                </div>
+                <div class="grid grid-cols-2 gap-2">
+                    <div>
+                        <label class="block text-[11px] font-bold text-slate-600 dark:text-slate-300 mb-1">NIM</label>
+                        <input type="text" id="inputProfileNim" class="w-full px-2.5 py-1.5 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-750 text-slate-800 dark:text-white text-xs focus:ring-2 focus:ring-brand-500 focus:outline-none" required placeholder="Contoh: 202401001">
+                    </div>
+                    <div>
+                        <label class="block text-[11px] font-bold text-slate-600 dark:text-slate-300 mb-1">Kelas</label>
+                        <input type="text" id="inputProfileClass" class="w-full px-2.5 py-1.5 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-750 text-slate-800 dark:text-white text-xs focus:ring-2 focus:ring-brand-500 focus:outline-none" required placeholder="Contoh: TI-A / Semester 5">
+                    </div>
+                </div>
+                <div class="grid grid-cols-2 gap-2">
+                    <div>
+                        <label class="block text-[11px] font-bold text-slate-600 dark:text-slate-300 mb-1">Program Studi / Jurusan</label>
+                        <input type="text" id="inputProfileMajor" class="w-full px-2.5 py-1.5 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-750 text-slate-800 dark:text-white text-xs focus:ring-2 focus:ring-brand-500 focus:outline-none" placeholder="Contoh: Teknik Informatika">
+                    </div>
+                    <div>
+                        <label class="block text-[11px] font-bold text-slate-600 dark:text-slate-300 mb-1">Mata Kuliah</label>
+                        <input type="text" id="inputProfileCourse" class="w-full px-2.5 py-1.5 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-750 text-slate-800 dark:text-white text-xs focus:ring-2 focus:ring-brand-500 focus:outline-none" placeholder="Sistem Pendukung Keputusan">
+                    </div>
+                </div>
+                <div class="grid grid-cols-2 gap-2">
+                    <div>
+                        <label class="block text-[11px] font-bold text-slate-600 dark:text-slate-300 mb-1">Dosen Pengampu</label>
+                        <input type="text" id="inputProfileLecturer" class="w-full px-2.5 py-1.5 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-750 text-slate-800 dark:text-white text-xs focus:ring-2 focus:ring-brand-500 focus:outline-none" placeholder="Nama Dosen">
+                    </div>
+                    <div>
+                        <label class="block text-[11px] font-bold text-slate-600 dark:text-slate-300 mb-1">Universitas / Kampus</label>
+                        <input type="text" id="inputProfileCampus" class="w-full px-2.5 py-1.5 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-750 text-slate-800 dark:text-white text-xs focus:ring-2 focus:ring-brand-500 focus:outline-none" placeholder="Nama Universitas">
+                    </div>
+                </div>
+
+                <input type="file" id="profilePhotoInput" accept="image/*" class="hidden">
+
+                <div class="flex items-center justify-end gap-2 pt-2">
+                    <button type="button" id="btnCancelEditBiodata" class="px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-700 transition">
+                        Batal
+                    </button>
+                    <button type="submit" class="px-3 py-1.5 rounded-lg text-xs font-bold text-white bg-brand-600 hover:bg-brand-700 shadow-sm transition">
+                        Simpan Biodata
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- ==================== PURE JAVASCRIPT AHP ENGINE & UI LOGIC ==================== -->
+    <script>
+        // 1. DATASET EXCEL ASLI (AHP_Studi_Kasus_Mobil.xlsx)
+        const AHP_BASE_DATA = {
+            criteria_names: ["Style (Gaya)", "Keandalan", "Konsumsi BBM"],
+            criteria_codes: ["S", "K", "B"],
+            alternative_names: ["Toyota Avanza", "Daihatsu Xenia", "Suzuki Ertiga", "Nissan Grand Livina"],
+            short_names: ["Avanza", "Xenia", "Ertiga", "Grand Livina"],
+            crit_matrix: [
+                [1.0, 0.5, 3.0],
+                [2.0, 1.0, 4.0],
+                [1.0 / 3.0, 0.25, 1.0]
+            ],
+            style_matrix: [
+                [1.0, 2.0, 1.0 / 3.0, 0.25],
+                [0.5, 1.0, 0.25, 0.20],
+                [3.0, 4.0, 1.0, 2.0],
+                [4.0, 5.0, 0.5, 1.0]
+            ],
+            keandalan_matrix: [
+                [1.0, 2.0, 0.25, 1.0 / 3.0],
+                [0.5, 1.0, 0.20, 0.25],
+                [4.0, 5.0, 1.0, 3.0],
+                [3.0, 4.0, 1.0 / 3.0, 1.0]
+            ],
+            bbm_matrix: [
+                [1.0, 2.0, 0.5, 4.0],
+                [0.5, 1.0, 2.0 / 3.0, 3.0],
+                [2.0, 1.5, 1.0, 4.0],
+                [0.25, 1.0 / 3.0, 0.25, 1.0]
+            ]
+        };
+
+        const SAATY_RI = { 1: 0.0, 2: 0.0, 3: 0.58, 4: 0.90, 5: 1.12, 6: 1.24, 7: 1.32, 8: 1.41, 9: 1.45, 10: 1.49 };
+
+        // 2. MATHEMATICAL AHP ENGINE
+        function solveAhpMatrix(labels, matrix) {
+            const n = matrix.length;
+            // Column Sums
+            const colSums = [];
+            for (let c = 0; c < n; c++) {
+                let sum = 0;
+                for (let r = 0; r < n; r++) sum += matrix[r][c];
+                colSums.push(sum);
+            }
+            // Normalization
+            const normMatrix = [];
+            for (let r = 0; r < n; r++) {
+                const row = [];
+                for (let c = 0; c < n; c++) row.push(matrix[r][c] / colSums[c]);
+                normMatrix.push(row);
+            }
+            // Priority Weights (Row Averages)
+            const weights = [];
+            for (let r = 0; r < n; r++) {
+                const rowSum = normMatrix[r].reduce((a, b) => a + b, 0);
+                weights.push(rowSum / n);
+            }
+            // Eigen Values & Lambda Max
+            const eigenValues = [];
+            let lambdaMax = 0;
+            for (let i = 0; i < n; i++) {
+                const ev = colSums[i] * weights[i];
+                eigenValues.push(ev);
+                lambdaMax += ev;
+            }
+            // CI & CR
+            const ci = n > 1 ? (lambdaMax - n) / (n - 1) : 0;
+            const ri = SAATY_RI[n] || 0.90;
+            const cr = ri > 0 ? ci / ri : 0;
+            const isConsistent = cr <= 0.1001;
+
+            return { labels, n, rawMatrix: matrix, colSums, normMatrix, weights, eigenValues, lambdaMax, ci, ri, cr, isConsistent };
+        }
+
+        function synthesizeScores(critWeights, altWeightsByCrit) {
+            const alts = AHP_BASE_DATA.short_names;
+            const numAlts = alts.length;
+            const numCrit = critWeights.length;
+
+            const results = [];
+            for (let i = 0; i < numAlts; i++) {
+                const breakdown = [];
+                let totalScore = 0;
+                for (let j = 0; j < numCrit; j++) {
+                    const altW = altWeightsByCrit[j][i];
+                    const critW = critWeights[j];
+                    const contrib = altW * critW;
+                    breakdown.push({ altWeight: altW, critWeight: critW, contribution: contrib });
+                    totalScore += contrib;
+                }
+                results.push({ name: alts[i], fullName: AHP_BASE_DATA.alternative_names[i], score: totalScore, scorePercent: totalScore * 100, breakdown: breakdown });
+            }
+
+            // Rank descending
+            const sorted = [...results].sort((a, b) => b.score - a.score);
+            sorted.forEach((item, idx) => item.rank = idx + 1);
+
+            // Map rank back to results
+            results.forEach(item => {
+                const found = sorted.find(s => s.name === item.name);
+                item.rank = found ? found.rank : 1;
+            });
+
+            return { results, sorted, winner: sorted[0] };
+        }
+
+        // Global state
+        let currentAhp = {};
+        let chartCriteriaDoughnut = null;
+        let chartStackedScores = null;
+        let chartRadar = null;
+        let chartSimulatedBar = null;
+
+        function runAhpCalculation() {
+            const critCalc = solveAhpMatrix(AHP_BASE_DATA.criteria_codes, AHP_BASE_DATA.crit_matrix);
+            const styleCalc = solveAhpMatrix(AHP_BASE_DATA.short_names, AHP_BASE_DATA.style_matrix);
+            const keandalanCalc = solveAhpMatrix(AHP_BASE_DATA.short_names, AHP_BASE_DATA.keandalan_matrix);
+            const bbmCalc = solveAhpMatrix(AHP_BASE_DATA.short_names, AHP_BASE_DATA.bbm_matrix);
+
+            const synthesis = synthesizeScores(critCalc.weights, [styleCalc.weights, keandalanCalc.weights, bbmCalc.weights]);
+
+            const consistencySummary = [
+                { name: "Kriteria Utama (S, K, B)", ...critCalc },
+                { name: "Alternatif pada Kriteria Style", ...styleCalc },
+                { name: "Alternatif pada Kriteria Keandalan", ...keandalanCalc },
+                { name: "Alternatif pada Kriteria Konsumsi BBM", ...bbmCalc }
+            ];
+
+            currentAhp = { critCalc, styleCalc, keandalanCalc, bbmCalc, synthesis, consistencySummary };
+            renderAllViews();
+        }
+
+        // 3. UI RENDERING
+        function renderAllViews() {
+            renderHero();
+            renderRankingTable();
+            renderConsistencyTable();
+            renderSubMatrices();
+            renderSynthesisTable();
+            renderCharts();
+            initSimulation();
+        }
+
+        function renderHero() {
+            const winner = currentAhp.synthesis.winner;
+            document.getElementById('heroWinnerName').textContent = winner.fullName;
+            document.getElementById('heroWinnerDescName').textContent = winner.fullName;
+            document.getElementById('heroWinnerScore').textContent = `${winner.score.toFixed(4)} (${winner.scorePercent.toFixed(2)}%)`;
+            document.getElementById('heroScoreBig').textContent = `${winner.scorePercent.toFixed(2)}%`;
+            document.getElementById('kpiWinner').textContent = winner.fullName;
+        }
+
+        function renderRankingTable() {
+            const tbody = document.getElementById('rankingTableBody');
+            tbody.innerHTML = currentAhp.synthesis.sorted.map(item => `
+                <tr class="hover:bg-slate-50/80 dark:hover:bg-slate-750 transition ${item.rank === 1 ? 'bg-amber-50/40 dark:bg-amber-950/20 font-semibold' : ''}">
+                    <td class="py-3.5 px-2">
+                        <span class="w-7 h-7 rounded-full ${item.rank === 1 ? 'bg-amber-400 text-slate-900 shadow-sm' : item.rank === 2 ? 'bg-slate-300 dark:bg-slate-600 text-slate-800 dark:text-white' : item.rank === 3 ? 'bg-amber-700/50 text-white' : 'bg-slate-100 dark:bg-slate-700 text-slate-600'} inline-flex items-center justify-center font-bold text-xs">
+                            ${item.rank === 1 ? '<i class="fa-solid fa-trophy text-[10px]"></i>' : item.rank}
+                        </span>
+                    </td>
+                    <td class="py-3.5 px-3">
+                        <div class="font-bold text-slate-800 dark:text-white flex items-center gap-2">
+                            <span>${item.fullName}</span>
+                            ${item.rank === 1 ? '<span class="text-[10px] px-2 py-0.5 rounded-full bg-amber-400/20 text-amber-700 dark:text-amber-300 border border-amber-300/40 font-bold">Terpilih</span>' : ''}
+                        </div>
+                    </td>
+                    <td class="py-3.5 px-3 font-mono font-medium text-slate-700 dark:text-slate-300">${item.score.toFixed(6)}</td>
+                    <td class="py-3.5 px-3 text-right font-bold text-brand-600 dark:text-brand-400">${item.scorePercent.toFixed(2)}%</td>
+                    <td class="py-3.5 px-3">
+                        <div class="w-24 bg-slate-200 dark:bg-slate-700 rounded-full h-2 overflow-hidden">
+                            <div class="h-2 rounded-full ${item.rank === 1 ? 'bg-amber-400' : item.rank === 2 ? 'bg-brand-500' : 'bg-slate-400'}" style="width: ${item.scorePercent}%"></div>
+                        </div>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        function renderConsistencyTable() {
+            const tbody = document.getElementById('consistencySummaryTableBody');
+            tbody.innerHTML = currentAhp.consistencySummary.map(c => `
+                <tr class="hover:bg-slate-50 dark:hover:bg-slate-750">
+                    <td class="py-3 px-3 font-sans font-semibold text-slate-800 dark:text-white">${c.name}</td>
+                    <td class="py-3 px-3 text-center">${c.lambdaMax.toFixed(4)}</td>
+                    <td class="py-3 px-3 text-center">${c.ci.toFixed(4)}</td>
+                    <td class="py-3 px-3 text-center">${c.ri.toFixed(2)}</td>
+                    <td class="py-3 px-3 text-center font-bold text-slate-800 dark:text-slate-200">${c.cr.toFixed(4)}</td>
+                    <td class="py-3 px-3 text-center font-bold ${c.isConsistent ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600'}">${(c.cr * 100).toFixed(2)}%</td>
+                    <td class="py-3 px-3 text-center font-sans">
+                        <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300">
+                            <i class="fa-solid fa-check text-[10px]"></i> Konsisten
+                        </span>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        function generateMatrixHtml(title, subtitle, matData, color) {
+            const n = matData.n;
+            const labels = matData.labels;
+
+            return `
+                <div class="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700/60 p-6 shadow-sm">
+                    <div class="flex flex-col sm:flex-row sm:items-center justify-between pb-4 border-b border-slate-200 dark:border-slate-700 gap-2">
+                        <div>
+                            <span class="text-xs font-bold text-${color}-600 dark:text-${color}-400 uppercase tracking-wider">${title}</span>
+                            <h3 class="text-xl font-extrabold text-slate-800 dark:text-white">${subtitle}</h3>
+                        </div>
+                        <span class="text-xs px-3 py-1 rounded-full font-bold bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300 border border-emerald-300">
+                            CR = ${matData.cr.toFixed(4)} (${(matData.cr * 100).toFixed(2)}% &le; 10%) &check; Konsisten
+                        </span>
+                    </div>
+
+                    <!-- Raw Pairwise Matrix -->
+                    <div class="mt-6">
+                        <h4 class="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">A. Matriks Perbandingan Berpasangan (A)</h4>
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-center text-sm border-collapse">
+                                <thead>
+                                    <tr class="bg-slate-100 dark:bg-slate-750 text-xs font-bold text-slate-600 dark:text-slate-300">
+                                        <th class="p-3 text-left">Elemen</th>
+                                        ${labels.map(l => `<th class="p-3">${l}</th>`).join('')}
+                                    </tr>
+                                </thead>
+                                <tbody class="divide-y divide-slate-100 dark:divide-slate-700 font-mono text-sm">
+                                    ${labels.map((rowLabel, r) => `
+                                        <tr>
+                                            <td class="p-3 text-left font-bold font-sans">${rowLabel}</td>
+                                            ${labels.map((_, c) => `
+                                                <td class="p-3 ${r === c ? 'bg-slate-100 dark:bg-slate-750 font-bold' : ''}">${matData.rawMatrix[r][c].toFixed(4)}</td>
+                                            `).join('')}
+                                        </tr>
+                                    `).join('')}
+                                    <tr class="bg-slate-100/80 dark:bg-slate-750/80 font-bold border-t-2 border-slate-300 dark:border-slate-600">
+                                        <td class="p-3 text-left font-sans">TOTAL KOLOM (&sum;)</td>
+                                        ${matData.colSums.map(sum => `<td class="p-3">${sum.toFixed(4)}</td>`).join('')}
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- Normalized Matrix -->
+                    <div class="mt-8">
+                        <h4 class="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">B. Matriks Normalisasi & Bobot Prioritas</h4>
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-center text-sm border-collapse">
+                                <thead>
+                                    <tr class="bg-${color}-50 dark:bg-${color}-950/40 text-xs font-bold text-${color}-900 dark:text-${color}-200">
+                                        <th class="p-3 text-left">Elemen</th>
+                                        ${labels.map(l => `<th class="p-3">${l}</th>`).join('')}
+                                        <th class="p-3 bg-${color}-100/70 dark:bg-${color}-900/40">Jumlah</th>
+                                        <th class="p-3 bg-${color}-600 text-white font-extrabold">Bobot (w)</th>
+                                        <th class="p-3 bg-amber-100 dark:bg-amber-950/40 text-amber-900">Eigen Value (&lambda;)</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="divide-y divide-slate-100 dark:divide-slate-700 font-mono text-xs">
+                                    ${labels.map((rowLabel, r) => `
+                                        <tr class="hover:bg-slate-50 dark:hover:bg-slate-750">
+                                            <td class="p-3 text-left font-bold font-sans text-slate-800 dark:text-white">${rowLabel}</td>
+                                            ${labels.map((_, c) => `<td class="p-3">${matData.normMatrix[r][c].toFixed(4)}</td>`).join('')}
+                                            <td class="p-3 font-bold bg-${color}-50/50 dark:bg-${color}-950/20">${(matData.weights[r] * n).toFixed(4)}</td>
+                                            <td class="p-3 bg-${color}-50 dark:bg-${color}-950/40 font-bold text-${color}-700 dark:text-${color}-300 text-sm">
+                                                ${matData.weights[r].toFixed(4)} (${(matData.weights[r] * 100).toFixed(2)}%)
+                                            </td>
+                                            <td class="p-3 bg-amber-50/50 dark:bg-amber-950/20 font-bold text-amber-700 dark:text-amber-300">
+                                                ${matData.eigenValues[r].toFixed(4)}
+                                            </td>
+                                        </tr>
+                                    `).join('')}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- Calculation Box -->
+                    <div class="mt-6 p-4 rounded-xl bg-slate-50 dark:bg-slate-750 border border-slate-200 dark:border-slate-700 grid grid-cols-1 md:grid-cols-4 gap-4 text-xs">
+                        <div class="p-3 rounded-lg bg-white dark:bg-slate-800 shadow-sm border border-slate-200/60 dark:border-slate-700">
+                            <span class="block text-slate-400 font-medium mb-1">&lambda; Max</span>
+                            <span class="text-base font-extrabold font-mono text-slate-800 dark:text-white">${matData.lambdaMax.toFixed(4)}</span>
+                        </div>
+                        <div class="p-3 rounded-lg bg-white dark:bg-slate-800 shadow-sm border border-slate-200/60 dark:border-slate-700">
+                            <span class="block text-slate-400 font-medium mb-1">Consistency Index (CI)</span>
+                            <span class="text-base font-extrabold font-mono text-slate-800 dark:text-white">${matData.ci.toFixed(4)}</span>
+                        </div>
+                        <div class="p-3 rounded-lg bg-white dark:bg-slate-800 shadow-sm border border-slate-200/60 dark:border-slate-700">
+                            <span class="block text-slate-400 font-medium mb-1">Random Index (RI)</span>
+                            <span class="text-base font-extrabold font-mono text-slate-800 dark:text-white">${matData.ri.toFixed(2)}</span>
+                        </div>
+                        <div class="p-3 rounded-lg bg-emerald-50 dark:bg-emerald-950/40 shadow-sm border border-emerald-200 dark:border-emerald-800">
+                            <span class="block text-emerald-700 dark:text-emerald-300 font-semibold mb-1">Consistency Ratio (CR)</span>
+                            <span class="text-base font-extrabold font-mono text-emerald-700 dark:text-emerald-300">${matData.cr.toFixed(4)} (${(matData.cr * 100).toFixed(2)}%)</span>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        function renderSubMatrices() {
+            const container = document.getElementById('subMatrixContainer');
+            container.innerHTML = `
+                <div id="subMatrix-criteria" class="submatrix-panel space-y-6">
+                    ${generateMatrixHtml("Tahap 1", "Matriks Perbandingan Berpasangan: Kriteria Utama", currentAhp.critCalc, "brand")}
+                </div>
+                <div id="subMatrix-style" class="submatrix-panel hidden space-y-6">
+                    ${generateMatrixHtml("Kriteria 1", "Perbandingan Alternatif pada Kriteria Style", currentAhp.styleCalc, "pink")}
+                </div>
+                <div id="subMatrix-keandalan" class="submatrix-panel hidden space-y-6">
+                    ${generateMatrixHtml("Kriteria 2", "Perbandingan Alternatif pada Kriteria Keandalan", currentAhp.keandalanCalc, "brand")}
+                </div>
+                <div id="subMatrix-bbm" class="submatrix-panel hidden space-y-6">
+                    ${generateMatrixHtml("Kriteria 3", "Perbandingan Alternatif pada Konsumsi BBM", currentAhp.bbmCalc, "emerald")}
+                </div>
+            `;
+        }
+
+        function renderSynthesisTable() {
+            const tbody = document.getElementById('synthesisTableBody');
+            tbody.innerHTML = currentAhp.synthesis.results.map(item => `
+                <tr class="hover:bg-slate-50 dark:hover:bg-slate-750 ${item.rank === 1 ? 'bg-amber-50/50 dark:bg-amber-950/20 font-bold' : ''}">
+                    <td class="p-3 text-left font-bold font-sans text-slate-800 dark:text-white">
+                        ${item.name}
+                        ${item.rank === 1 ? '<span class="ml-1 text-[10px] px-1.5 py-0.5 rounded bg-amber-300 text-slate-900">#1</span>' : ''}
+                    </td>
+                    <td class="p-3">
+                        <span class="text-slate-700 dark:text-slate-300">${item.breakdown[0].altWeight.toFixed(4)}</span>
+                        <span class="block text-[10px] text-slate-400">(&times; 0.3202 = ${item.breakdown[0].contribution.toFixed(4)})</span>
+                    </td>
+                    <td class="p-3">
+                        <span class="text-slate-700 dark:text-slate-300">${item.breakdown[1].altWeight.toFixed(4)}</span>
+                        <span class="block text-[10px] text-slate-400">(&times; 0.5571 = ${item.breakdown[1].contribution.toFixed(4)})</span>
+                    </td>
+                    <td class="p-3">
+                        <span class="text-slate-700 dark:text-slate-300">${item.breakdown[2].altWeight.toFixed(4)}</span>
+                        <span class="block text-[10px] text-slate-400">(&times; 0.1226 = ${item.breakdown[2].contribution.toFixed(4)})</span>
+                    </td>
+                    <td class="p-3 bg-brand-50/50 dark:bg-brand-950/20 font-extrabold text-sm text-brand-700 dark:text-brand-300">
+                        ${item.score.toFixed(6)}
+                    </td>
+                    <td class="p-3 bg-amber-50/50 dark:bg-amber-950/20 font-bold text-amber-700 dark:text-amber-300 text-sm">
+                        ${item.scorePercent.toFixed(2)}%
+                    </td>
+                    <td class="p-3 font-sans">
+                        <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold ${item.rank === 1 ? 'bg-amber-400 text-slate-900' : 'bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300'}">
+                            ${item.rank === 1 ? 'Juara 1' : 'Peringkat ' + item.rank}
+                        </span>
+                    </td>
+                </tr>
+            `).join('') + `
+                <tr class="bg-slate-100 dark:bg-slate-750 font-bold border-t-2 border-slate-300 dark:border-slate-600">
+                    <td class="p-3 text-left font-sans">TOTAL</td>
+                    <td class="p-3">-</td>
+                    <td class="p-3">-</td>
+                    <td class="p-3">-</td>
+                    <td class="p-3 text-brand-700 dark:text-brand-300 font-extrabold">1.000000</td>
+                    <td class="p-3 text-amber-700 dark:text-amber-300 font-extrabold">100.00%</td>
+                    <td class="p-3">-</td>
+                </tr>
+            `;
+        }
+
+        // 4. CHART.JS INITIALIZATION
+        function isDarkMode() { return document.documentElement.classList.contains('dark'); }
+        function getChartColors() {
+            const dark = isDarkMode();
+            return {
+                text: dark ? '#cbd5e1' : '#475569',
+                grid: dark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.06)'
+            };
+        }
+
+        function renderCharts() {
+            const colors = getChartColors();
+
+            // Doughnut Chart
+            const ctxDoughnut = document.getElementById('chartCriteriaDoughnut');
+            if (ctxDoughnut) {
+                if (chartCriteriaDoughnut) chartCriteriaDoughnut.destroy();
+                chartCriteriaDoughnut = new Chart(ctxDoughnut, {
+                    type: 'doughnut',
+                    data: {
+                        labels: ['Style (Gaya)', 'Keandalan', 'Konsumsi BBM'],
+                        datasets: [{
+                            data: [32.02, 55.71, 12.26],
+                            backgroundColor: ['rgba(236, 72, 153, 0.85)', 'rgba(79, 70, 229, 0.85)', 'rgba(16, 185, 129, 0.85)'],
+                            borderColor: isDarkMode() ? '#1e293b' : '#ffffff',
+                            borderWidth: 2
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: { position: 'bottom', labels: { color: colors.text, font: { family: 'Plus Jakarta Sans', size: 11, weight: '600' } } }
+                        },
+                        cutout: '68%'
+                    }
+                });
+            }
+
+            // Stacked Bar Chart
+            const ctxStacked = document.getElementById('chartStackedScores');
+            if (ctxStacked) {
+                if (chartStackedScores) chartStackedScores.destroy();
+                const sorted = currentAhp.synthesis.sorted;
+                chartStackedScores = new Chart(ctxStacked, {
+                    type: 'bar',
+                    data: {
+                        labels: sorted.map(i => i.name),
+                        datasets: [
+                            { label: 'Kontribusi Style', data: sorted.map(i => (i.breakdown[0].contribution * 100).toFixed(2)), backgroundColor: 'rgba(236, 72, 153, 0.85)', borderRadius: 4 },
+                            { label: 'Kontribusi Keandalan', data: sorted.map(i => (i.breakdown[1].contribution * 100).toFixed(2)), backgroundColor: 'rgba(79, 70, 229, 0.85)', borderRadius: 4 },
+                            { label: 'Kontribusi BBM', data: sorted.map(i => (i.breakdown[2].contribution * 100).toFixed(2)), backgroundColor: 'rgba(16, 185, 129, 0.85)', borderRadius: 4 }
+                        ]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        scales: {
+                            x: { stacked: true, grid: { display: false }, ticks: { color: colors.text, font: { family: 'Plus Jakarta Sans', weight: '600' } } },
+                            y: { stacked: true, beginAtZero: true, max: 60, grid: { color: colors.grid }, ticks: { color: colors.text, callback: val => `${val}%` } }
+                        },
+                        plugins: { legend: { position: 'top', labels: { color: colors.text, font: { family: 'Plus Jakarta Sans', size: 11 } } } }
+                    }
+                });
+            }
+
+            // Radar Chart
+            const ctxRadar = document.getElementById('chartRadar');
+            if (ctxRadar) {
+                if (chartRadar) chartRadar.destroy();
+                const styleW = currentAhp.styleCalc.weights;
+                const keanW = currentAhp.keandalanCalc.weights;
+                const bbmW = currentAhp.bbmCalc.weights;
+                const alts = AHP_BASE_DATA.short_names;
+                const radarColors = [
+                    { bg: 'rgba(239, 68, 68, 0.2)', border: '#ef4444' },
+                    { bg: 'rgba(245, 158, 11, 0.2)', border: '#f59e0b' },
+                    { bg: 'rgba(16, 185, 129, 0.2)', border: '#10b981' },
+                    { bg: 'rgba(99, 102, 241, 0.2)', border: '#6366f1' }
+                ];
+
+                chartRadar = new Chart(ctxRadar, {
+                    type: 'radar',
+                    data: {
+                        labels: ['Style', 'Keandalan', 'Konsumsi BBM'],
+                        datasets: alts.map((name, idx) => ({
+                            label: name,
+                            data: [(styleW[idx] * 100).toFixed(1), (keanW[idx] * 100).toFixed(1), (bbmW[idx] * 100).toFixed(1)],
+                            backgroundColor: radarColors[idx].bg,
+                            borderColor: radarColors[idx].border,
+                            borderWidth: 2
+                        }))
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        scales: {
+                            r: {
+                                beginAtZero: true,
+                                max: 60,
+                                angleLines: { color: colors.grid },
+                                grid: { color: colors.grid },
+                                pointLabels: { color: colors.text, font: { family: 'Plus Jakarta Sans', size: 11, weight: '700' } },
+                                ticks: { backdropColor: 'transparent', color: colors.text, stepSize: 15 }
+                            }
+                        },
+                        plugins: { legend: { position: 'bottom', labels: { color: colors.text, font: { family: 'Plus Jakarta Sans', size: 10 } } } }
+                    }
+                });
+            }
+        }
+
+        // 5. SIMULATOR & SENSITIVITY ANALYSIS
+        function initSimulation() {
+            const sliderS = document.getElementById('sliderWeightS');
+            const sliderK = document.getElementById('sliderWeightK');
+            const sliderB = document.getElementById('sliderWeightB');
+
+            function handleSlider() {
+                const s = parseFloat(sliderS.value) || 0;
+                const k = parseFloat(sliderK.value) || 0;
+                const b = parseFloat(sliderB.value) || 0;
+                const total = s + k + b;
+                const wS = total > 0 ? s / total : 1 / 3;
+                const wK = total > 0 ? k / total : 1 / 3;
+                const wB = total > 0 ? b / total : 1 / 3;
+
+                document.getElementById('labelSimWeightS').textContent = `${(wS * 100).toFixed(1)}%`;
+                document.getElementById('labelSimWeightK').textContent = `${(wK * 100).toFixed(1)}%`;
+                document.getElementById('labelSimWeightB').textContent = `${(wB * 100).toFixed(1)}%`;
+
+                const alts = AHP_BASE_DATA.short_names;
+                const styleW = currentAhp.styleCalc.weights;
+                const keanW = currentAhp.keandalanCalc.weights;
+                const bbmW = currentAhp.bbmCalc.weights;
+
+                const res = alts.map((name, idx) => {
+                    const score = (wS * styleW[idx]) + (wK * keanW[idx]) + (wB * bbmW[idx]);
+                    return { name, score, scorePercent: score * 100 };
+                });
+
+                res.sort((x, y) => y.score - x.score);
+                res.forEach((item, idx) => item.rank = idx + 1);
+
+                // Render list
+                document.getElementById('simulatedRankingList').innerHTML = res.map(item => `
+                    <div class="p-3 rounded-xl ${item.rank === 1 ? 'bg-amber-100/70 dark:bg-amber-950/40 border border-amber-300' : 'bg-white dark:bg-slate-800 border border-slate-200'} flex items-center justify-between">
+                        <div class="flex items-center gap-3">
+                            <span class="w-6 h-6 rounded-full ${item.rank === 1 ? 'bg-amber-400 text-slate-900' : 'bg-slate-200 dark:bg-slate-700 text-slate-700'} flex items-center justify-center font-bold text-xs">${item.rank}</span>
+                            <div>
+                                <h5 class="text-xs font-bold text-slate-800 dark:text-white flex items-center gap-1.5">
+                                    ${item.name} ${item.rank === 1 ? '<span class="text-[10px] px-1.5 py-0.2 rounded bg-amber-400 text-slate-900 font-extrabold">Terpilih</span>' : ''}
+                                </h5>
+                                <div class="w-24 bg-slate-200 dark:bg-slate-700 rounded-full h-1.5 mt-1 overflow-hidden">
+                                    <div class="h-1.5 rounded-full ${item.rank === 1 ? 'bg-amber-400' : 'bg-brand-500'}" style="width: ${item.scorePercent}%"></div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="text-right">
+                            <span class="text-xs font-extrabold font-mono text-brand-600 dark:text-brand-400">${item.scorePercent.toFixed(2)}%</span>
+                            <span class="block text-[10px] text-slate-400 font-mono">${item.score.toFixed(4)}</span>
+                        </div>
+                    </div>
+                `).join('');
+
+                // Update simulated bar chart
+                const ctx = document.getElementById('chartSimulatedBar');
+                const colors = getChartColors();
+                if (ctx) {
+                    if (chartSimulatedBar) chartSimulatedBar.destroy();
+                    chartSimulatedBar = new Chart(ctx, {
+                        type: 'bar',
+                        data: {
+                            labels: res.map(i => i.name),
+                            datasets: [{
+                                data: res.map(i => i.scorePercent.toFixed(2)),
+                                backgroundColor: res.map((_, idx) => idx === 0 ? 'rgba(245, 158, 11, 0.85)' : idx === 1 ? 'rgba(99, 102, 241, 0.8)' : 'rgba(148, 163, 184, 0.7)'),
+                                borderRadius: 6
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            scales: {
+                                x: { grid: { display: false }, ticks: { color: colors.text, font: { family: 'Plus Jakarta Sans', weight: '600' } } },
+                                y: { beginAtZero: true, max: 60, grid: { color: colors.grid }, ticks: { color: colors.text, callback: val => `${val}%` } }
+                            },
+                            plugins: { legend: { display: false } }
+                        }
+                    });
+                }
+            }
+
+            sliderS.oninput = handleSlider;
+            sliderK.oninput = handleSlider;
+            sliderB.oninput = handleSlider;
+            handleSlider();
+        }
+
+        function resetSliders() {
+            document.getElementById('sliderWeightS').value = 32;
+            document.getElementById('sliderWeightK').value = 56;
+            document.getElementById('sliderWeightB').value = 12;
+            initSimulation();
+            showToast('Bobot simulator dikembalikan ke nilai default Excel.', 'info');
+        }
+
+        function resetToDefaultData() {
+            resetSliders();
+            showToast('Data aplikasi dikembalikan ke pengaturan awal Excel.', 'success');
+        }
+
+        function exportCsv() {
+            let csv = "HASIL PERANGKINGAN SPK PEMILIHAN MOBIL (METODE AHP)\n\n";
+            csv += "Peringkat,Mobil,Skor Akhir,Persentase,Kontribusi Style,Kontribusi Keandalan,Kontribusi BBM\n";
+            currentAhp.synthesis.sorted.forEach(item => {
+                csv += `${item.rank},"${item.fullName}",${item.score.toFixed(6)},${item.scorePercent.toFixed(2)}%,${item.breakdown[0].contribution.toFixed(6)},${item.breakdown[1].contribution.toFixed(6)},${item.breakdown[2].contribution.toFixed(6)}\n`;
+            });
+
+            const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'Hasil_AHP_Pemilihan_Mobil.csv';
+            a.click();
+            URL.revokeObjectURL(url);
+            showToast('File CSV berhasil diunduh!', 'success');
+        }
+
+        // 6. TAB & THEME NAVIGATION
+        function switchTab(tabId) {
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
+            document.querySelectorAll('.tab-btn').forEach(btn => {
+                btn.classList.remove('active-tab', 'border-brand-600', 'text-brand-600', 'dark:text-brand-400');
+                btn.classList.add('border-transparent', 'text-slate-500', 'dark:text-slate-400');
+            });
+
+            const target = document.getElementById(`tab-${tabId}`);
+            if (target) target.classList.remove('hidden');
+
+            const btn = document.getElementById(`tabBtn-${tabId}`);
+            if (btn) {
+                btn.classList.add('active-tab', 'border-brand-600', 'text-brand-600', 'dark:text-brand-400');
+                btn.classList.remove('border-transparent', 'text-slate-500', 'dark:text-slate-400');
+            }
+
+            if (tabId === 'dashboard') {
+                if (chartCriteriaDoughnut) chartCriteriaDoughnut.resize();
+                if (chartStackedScores) chartStackedScores.resize();
+                if (chartRadar) chartRadar.resize();
+            } else if (tabId === 'simulator') {
+                if (chartSimulatedBar) chartSimulatedBar.resize();
+            }
+        }
+
+        function switchSubMatrix(subId) {
+            document.querySelectorAll('.submatrix-panel').forEach(el => el.classList.add('hidden'));
+            document.querySelectorAll('.subtab-btn').forEach(btn => {
+                btn.classList.remove('active-subtab', 'bg-white', 'dark:bg-slate-700', 'text-brand-600', 'dark:text-brand-300', 'shadow-sm');
+                btn.classList.add('text-slate-600', 'dark:text-slate-300');
+            });
+
+            const target = document.getElementById(`subMatrix-${subId}`);
+            if (target) target.classList.remove('hidden');
+
+            const btn = document.getElementById(`subTabBtn-${subId}`);
+            if (btn) {
+                btn.classList.add('active-subtab', 'bg-white', 'dark:bg-slate-700', 'text-brand-600', 'dark:text-brand-300', 'shadow-sm');
+                btn.classList.remove('text-slate-600', 'dark:text-slate-300');
+            }
+        }
+
+        function initTheme() {
+            const btnTheme = document.getElementById('themeToggle');
+            const icon = document.getElementById('themeIcon');
+            const saved = localStorage.getItem('ahp_theme');
+
+            if (saved === 'dark' || (!saved && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+                document.documentElement.classList.add('dark');
+                if (icon) { icon.classList.remove('fa-moon'); icon.classList.add('fa-sun'); }
+            } else {
+                document.documentElement.classList.remove('dark');
+                if (icon) { icon.classList.remove('fa-sun'); icon.classList.add('fa-moon'); }
+            }
+
+            if (btnTheme) {
+                btnTheme.onclick = () => {
+                    const isDark = document.documentElement.classList.toggle('dark');
+                    localStorage.setItem('ahp_theme', isDark ? 'dark' : 'light');
+                    if (icon) {
+                        if (isDark) { icon.classList.remove('fa-moon'); icon.classList.add('fa-sun'); }
+                        else { icon.classList.remove('fa-sun'); icon.classList.add('fa-moon'); }
+                    }
+                    renderCharts();
+                };
+            }
+        }
+
+        // 7. BIODATA & PROFILE WIDGET
+        function initBiodata() {
+            const defaultBio = {
+                name: "Umar",
+                nim: "202401001",
+                class: "TI-A / Semester 5",
+                major: "Teknik Informatika",
+                course: "Sistem Pendukung Keputusan (AHP)",
+                lecturer: "Nama Dosen Pengampu, M.Kom.",
+                campus: "Universitas / Perguruan Tinggi"
+            };
+
+            function getBio() {
+                try {
+                    const s = localStorage.getItem('ahp_student_biodata');
+                    if (s) return { ...defaultBio, ...JSON.parse(s) };
+                } catch(e) {}
+                return defaultBio;
+            }
+
+            function getPhoto() { return localStorage.getItem('ahp_student_photo') || null; }
+
+            function renderBio() {
+                const b = getBio();
+                const p = getPhoto();
+
+                document.getElementById('pillProfileName').textContent = b.name;
+                document.getElementById('pillProfileClass').textContent = b.class ? `Kelas: ${b.class}` : "Klik untuk lihat / edit";
+                document.getElementById('cardProfileName').textContent = b.name;
+                document.getElementById('cardProfileNim').textContent = b.nim;
+                document.getElementById('cardProfileClassBadge').textContent = b.class;
+                document.getElementById('cardProfileMajor').textContent = b.major;
+                document.getElementById('cardProfileCourse').textContent = b.course;
+                document.getElementById('cardProfileLecturer').textContent = b.lecturer;
+                document.getElementById('cardProfileCampus').textContent = b.campus;
+
+                document.getElementById('printProfileName').textContent = b.name;
+                document.getElementById('printProfileNim').textContent = b.nim;
+                document.getElementById('printProfileClass').textContent = b.class;
+                document.getElementById('printProfileMajor').textContent = b.major;
+                document.getElementById('printProfileCourse').textContent = `Mata Kuliah: ${b.course}`;
+                document.getElementById('printProfileLecturer').textContent = `Dosen: ${b.lecturer}`;
+                document.getElementById('printProfileCampus').textContent = b.campus;
+
+                if (p) {
+                    const pillImg = document.getElementById('pillProfileImg');
+                    pillImg.src = p; pillImg.classList.remove('hidden');
+                    document.getElementById('pillProfileIcon').classList.add('hidden');
+
+                    const cardImg = document.getElementById('cardProfileImg');
+                    cardImg.src = p; cardImg.classList.remove('hidden');
+                    document.getElementById('cardProfileIcon').classList.add('hidden');
+
+                    const printImg = document.getElementById('printProfileImg');
+                    printImg.src = p; printImg.classList.remove('hidden');
+                    document.getElementById('printAvatarPlaceholder').classList.add('hidden');
+                }
+            }
+
+            document.getElementById('btnToggleBiodata').onclick = () => {
+                document.getElementById('biodataExpandedCard').classList.toggle('hidden');
+            };
+            document.getElementById('btnCloseBiodataCard').onclick = () => {
+                document.getElementById('biodataExpandedCard').classList.add('hidden');
+            };
+            document.getElementById('btnOpenEditBiodata').onclick = () => {
+                const b = getBio();
+                document.getElementById('inputProfileName').value = b.name;
+                document.getElementById('inputProfileNim').value = b.nim;
+                document.getElementById('inputProfileClass').value = b.class;
+                document.getElementById('inputProfileMajor').value = b.major;
+                document.getElementById('inputProfileCourse').value = b.course;
+                document.getElementById('inputProfileLecturer').value = b.lecturer;
+                document.getElementById('inputProfileCampus').value = b.campus;
+                document.getElementById('biodataViewMode').classList.add('hidden');
+                document.getElementById('biodataEditForm').classList.remove('hidden');
+            };
+            document.getElementById('btnCancelEditBiodata').onclick = () => {
+                document.getElementById('biodataEditForm').classList.add('hidden');
+                document.getElementById('biodataViewMode').classList.remove('hidden');
+            };
+            document.getElementById('biodataEditForm').onsubmit = (e) => {
+                e.preventDefault();
+                const updated = {
+                    name: document.getElementById('inputProfileName').value.trim() || defaultBio.name,
+                    nim: document.getElementById('inputProfileNim').value.trim() || defaultBio.nim,
+                    class: document.getElementById('inputProfileClass').value.trim() || defaultBio.class,
+                    major: document.getElementById('inputProfileMajor').value.trim() || defaultBio.major,
+                    course: document.getElementById('inputProfileCourse').value.trim() || defaultBio.course,
+                    lecturer: document.getElementById('inputProfileLecturer').value.trim() || defaultBio.lecturer,
+                    campus: document.getElementById('inputProfileCampus').value.trim() || defaultBio.campus
+                };
+                localStorage.setItem('ahp_student_biodata', JSON.stringify(updated));
+                renderBio();
+                document.getElementById('biodataEditForm').classList.add('hidden');
+                document.getElementById('biodataViewMode').classList.remove('hidden');
+                showToast('Biodata berhasil disimpan!', 'success');
+            };
+
+            document.getElementById('profilePhotoInput').onchange = (e) => {
+                const file = e.target.files[0];
+                if (!file) return;
+                const reader = new FileReader();
+                reader.onload = (ev) => {
+                    localStorage.setItem('ahp_student_photo', ev.target.result);
+                    renderBio();
+                    showToast('Foto profil berhasil dipasang!', 'success');
+                };
+                reader.readAsDataURL(file);
+            };
+
+            renderBio();
+        }
+
+        // Toast
+        function showToast(msg, type = 'success') {
+            const alert = document.getElementById('toastAlert');
+            const txt = document.getElementById('toastMsg');
+            const icon = document.getElementById('toastIcon');
+            if (!alert) return;
+            txt.textContent = msg;
+            alert.className = `transition-all duration-300 p-4 rounded-xl text-sm font-medium flex items-center justify-between shadow-sm border ${type === 'success' ? 'bg-emerald-50 text-emerald-800 border-emerald-300 dark:bg-emerald-950/70 dark:text-emerald-200' : 'bg-brand-50 text-brand-800 border-brand-300 dark:bg-brand-950/70 dark:text-brand-200'}`;
+            alert.classList.remove('hidden');
+            setTimeout(() => alert.classList.add('hidden'), 3500);
+        }
+        function hideToast() { document.getElementById('toastAlert').classList.add('hidden'); }
+
+        // Start
+        document.addEventListener('DOMContentLoaded', () => {
+            initTheme();
+            runAhpCalculation();
+            initBiodata();
+        });
+    </script>
+</body>
+</html>
