@@ -621,121 +621,18 @@ function hideToast() {
 
 // ================= STUDENT BIODATA & PROFILE PHOTO WIDGET =================
 function initBiodata() {
-    // Default Biodata
-    const defaultBiodata = {
-        name: "Budi Pratama",
-        nim: "202401001",
-        class: "TI-A / Semester 5",
-        major: "Teknik Informatika",
-        course: "Sistem Pendukung Keputusan (AHP)",
-        lecturer: "Nama Dosen Pengampu, M.Kom.",
-        campus: "Universitas / Institut"
-    };
+    try {
+        localStorage.removeItem('ahp_student_biodata');
+        localStorage.removeItem('ahp_student_photo');
+    } catch (e) {}
 
-    // Load from localStorage or use default
-    function getBiodata() {
-        try {
-            const saved = localStorage.getItem('ahp_student_biodata');
-            if (saved) return { ...defaultBiodata, ...JSON.parse(saved) };
-        } catch (e) {
-            console.error('Error loading biodata from localStorage:', e);
-        }
-        return defaultBiodata;
-    }
-
-    function getPhoto() {
-        return localStorage.getItem('ahp_student_photo') || null;
-    }
-
-    // Elements
     const btnToggle = document.getElementById('btnToggleBiodata');
     const cardExpanded = document.getElementById('biodataExpandedCard');
     const btnClose = document.getElementById('btnCloseBiodataCard');
-    const btnOpenEdit = document.getElementById('btnOpenEditBiodata');
-    const btnCancelEdit = document.getElementById('btnCancelEditBiodata');
-    const viewMode = document.getElementById('biodataViewMode');
-    const editForm = document.getElementById('biodataEditForm');
-    const photoInput = document.getElementById('profilePhotoInput');
     const pillChevron = document.getElementById('pillChevron');
 
-    // Display elements
-    const elPillName = document.getElementById('pillProfileName');
-    const elPillClass = document.getElementById('pillProfileClass');
-    const elPillImg = document.getElementById('pillProfileImg');
-    const elPillIcon = document.getElementById('pillProfileIcon');
-
-    const elCardName = document.getElementById('cardProfileName');
-    const elCardNim = document.getElementById('cardProfileNim');
-    const elCardClassBadge = document.getElementById('cardProfileClassBadge');
-    const elCardMajor = document.getElementById('cardProfileMajor');
-    const elCardCourse = document.getElementById('cardProfileCourse');
-    const elCardLecturer = document.getElementById('cardProfileLecturer');
-    const elCardCampus = document.getElementById('cardProfileCampus');
-    const elCardImg = document.getElementById('cardProfileImg');
-    const elCardIcon = document.getElementById('cardProfileIcon');
-
-    // Print elements
-    const elPrintName = document.getElementById('printProfileName');
-    const elPrintNim = document.getElementById('printProfileNim');
-    const elPrintClass = document.getElementById('printProfileClass');
-    const elPrintMajor = document.getElementById('printProfileMajor');
-    const elPrintCourse = document.getElementById('printProfileCourse');
-    const elPrintLecturer = document.getElementById('printProfileLecturer');
-    const elPrintCampus = document.getElementById('printProfileCampus');
-    const elPrintImg = document.getElementById('printProfileImg');
-    const elPrintPlaceholder = document.getElementById('printAvatarPlaceholder');
-
-    // Render Data to UI
-    function renderBiodata() {
-        const bio = getBiodata();
-        const photo = getPhoto();
-
-        // 1. Text elements
-        if (elPillName) elPillName.textContent = bio.name || "Biodata Mahasiswa";
-        if (elPillClass) elPillClass.textContent = bio.class ? `Kelas: ${bio.class}` : "Klik untuk lihat / edit";
-
-        if (elCardName) elCardName.textContent = bio.name;
-        if (elCardNim) elCardNim.textContent = bio.nim;
-        if (elCardClassBadge) elCardClassBadge.textContent = bio.class;
-        if (elCardMajor) elCardMajor.textContent = bio.major;
-        if (elCardCourse) elCardCourse.textContent = bio.course;
-        if (elCardLecturer) elCardLecturer.textContent = bio.lecturer;
-        if (elCardCampus) elCardCampus.textContent = bio.campus;
-
-        if (elPrintName) elPrintName.textContent = bio.name;
-        if (elPrintNim) elPrintNim.textContent = bio.nim;
-        if (elPrintClass) elPrintClass.textContent = bio.class;
-        if (elPrintMajor) elPrintMajor.textContent = bio.major;
-        if (elPrintCourse) elPrintCourse.textContent = `Mata Kuliah: ${bio.course}`;
-        if (elPrintLecturer) elPrintLecturer.textContent = `Dosen Pengampu: ${bio.lecturer}`;
-        if (elPrintCampus) elPrintCampus.textContent = bio.campus;
-
-        // 2. Photo elements
-        if (photo) {
-            if (elPillImg) { elPillImg.src = photo; elPillImg.classList.remove('hidden'); }
-            if (elPillIcon) elPillIcon.classList.add('hidden');
-
-            if (elCardImg) { elCardImg.src = photo; elCardImg.classList.remove('hidden'); }
-            if (elCardIcon) elCardIcon.classList.add('hidden');
-
-            if (elPrintImg) { elPrintImg.src = photo; elPrintImg.classList.remove('hidden'); }
-            if (elPrintPlaceholder) elPrintPlaceholder.classList.add('hidden');
-        } else {
-            if (elPillImg) elPillImg.classList.add('hidden');
-            if (elPillIcon) elPillIcon.classList.remove('hidden');
-
-            if (elCardImg) elCardImg.classList.add('hidden');
-            if (elCardIcon) elCardIcon.classList.remove('hidden');
-
-            if (elPrintImg) elPrintImg.classList.add('hidden');
-            if (elPrintPlaceholder) elPrintPlaceholder.classList.remove('hidden');
-        }
-    }
-
-    // Toggle expanded card
     if (btnToggle && cardExpanded) {
-        btnToggle.addEventListener('click', (e) => {
-            e.stopPropagation();
+        btnToggle.addEventListener('click', () => {
             const isHidden = cardExpanded.classList.toggle('hidden');
             if (pillChevron) {
                 if (isHidden) {
@@ -747,99 +644,10 @@ function initBiodata() {
         });
     }
 
-    // Close button
     if (btnClose && cardExpanded) {
         btnClose.addEventListener('click', () => {
             cardExpanded.classList.add('hidden');
             if (pillChevron) pillChevron.className = 'fa-solid fa-chevron-up text-xs text-slate-400 group-hover:text-brand-600 transition';
         });
     }
-
-    // Switch to edit mode
-    if (btnOpenEdit) {
-        btnOpenEdit.addEventListener('click', () => {
-            const bio = getBiodata();
-            document.getElementById('inputProfileName').value = bio.name;
-            document.getElementById('inputProfileNim').value = bio.nim;
-            document.getElementById('inputProfileClass').value = bio.class;
-            document.getElementById('inputProfileMajor').value = bio.major;
-            document.getElementById('inputProfileCourse').value = bio.course;
-            document.getElementById('inputProfileLecturer').value = bio.lecturer;
-            document.getElementById('inputProfileCampus').value = bio.campus;
-
-            if (viewMode) viewMode.classList.add('hidden');
-            if (editForm) editForm.classList.remove('hidden');
-        });
-    }
-
-    // Cancel edit
-    if (btnCancelEdit) {
-        btnCancelEdit.addEventListener('click', () => {
-            if (editForm) editForm.classList.add('hidden');
-            if (viewMode) viewMode.classList.remove('hidden');
-        });
-    }
-
-    // Save edit form
-    if (editForm) {
-        editForm.addEventListener('submit', (e) => {
-            e.preventDefault();
-            const updated = {
-                name: document.getElementById('inputProfileName').value.trim() || defaultBiodata.name,
-                nim: document.getElementById('inputProfileNim').value.trim() || defaultBiodata.nim,
-                class: document.getElementById('inputProfileClass').value.trim() || defaultBiodata.class,
-                major: document.getElementById('inputProfileMajor').value.trim() || defaultBiodata.major,
-                course: document.getElementById('inputProfileCourse').value.trim() || defaultBiodata.course,
-                lecturer: document.getElementById('inputProfileLecturer').value.trim() || defaultBiodata.lecturer,
-                campus: document.getElementById('inputProfileCampus').value.trim() || defaultBiodata.campus
-            };
-
-            try {
-                localStorage.setItem('ahp_student_biodata', JSON.stringify(updated));
-                renderBiodata();
-                if (editForm) editForm.classList.add('hidden');
-                if (viewMode) viewMode.classList.remove('hidden');
-                showToast('Biodata mahasiswa berhasil disimpan!', 'success');
-            } catch (err) {
-                console.error(err);
-                showToast('Gagal menyimpan biodata ke browser.', 'error');
-            }
-        });
-    }
-
-    // Photo file input handler
-    if (photoInput) {
-        photoInput.addEventListener('change', (e) => {
-            const file = e.target.files[0];
-            if (!file) return;
-
-            if (!file.type.startsWith('image/')) {
-                showToast('Harap pilih file gambar (JPG, PNG, WebP).', 'error');
-                return;
-            }
-
-            // Limit file size to 3MB
-            if (file.size > 3 * 1024 * 1024) {
-                showToast('Ukuran foto maksimal 3MB.', 'error');
-                return;
-            }
-
-            const reader = new FileReader();
-            reader.onload = function(event) {
-                const dataUrl = event.target.result;
-                try {
-                    localStorage.setItem('ahp_student_photo', dataUrl);
-                    renderBiodata();
-                    showToast('Foto profil mahasiswa berhasil dipasang!', 'success');
-                } catch (err) {
-                    console.error(err);
-                    showToast('Ukuran foto terlalu besar untuk disimpan di browser lokal.', 'error');
-                }
-            };
-            reader.readAsDataURL(file);
-        });
-    }
-
-    // Initial render
-    renderBiodata();
 }
