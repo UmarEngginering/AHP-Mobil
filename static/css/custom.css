@@ -1,0 +1,117 @@
+/* Custom styles for AHP Decision Support System */
+
+/* Subtle glassmorphism and card elevation */
+.active-tab {
+    border-color: #4f46e5 !important;
+    color: #4f46e5 !important;
+}
+
+.dark .active-tab {
+    border-color: #818cf8 !important;
+    color: #818cf8 !important;
+}
+
+.active-subtab {
+    background-color: #ffffff !important;
+    color: #4f46e5 !important;
+    box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px -1px rgba(0, 0, 0, 0.1) !important;
+}
+
+.dark .active-subtab {
+    background-color: #334155 !important;
+    color: #a5b4fc !important;
+}
+
+/* Custom modern scrollbars */
+::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+}
+
+::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+    background: #cbd5e1;
+    border-radius: 9999px;
+}
+
+.dark ::-webkit-scrollbar-thumb {
+    background: #475569;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: #94a3b8;
+}
+
+/* Animation utilities */
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(6px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.tab-content:not(.hidden) {
+    animation: fadeIn 0.25s ease-out forwards;
+}
+
+.submatrix-panel:not(.hidden) {
+    animation: fadeIn 0.2s ease-out forwards;
+}
+
+/* Print Styles for PDF / Report Generation */
+@media print {
+    /* Hide interactive & non-essential elements */
+    header,
+    footer,
+    nav,
+    .tab-btn,
+    .subtab-btn,
+    button,
+    #themeToggle,
+    #uploadModal,
+    #toastAlert,
+    input[type="range"],
+    #btnResetSimulation,
+    .no-print {
+        display: none !important;
+    }
+
+    body {
+        background-color: #ffffff !important;
+        color: #0f172a !important;
+        font-size: 11pt !important;
+    }
+
+    main {
+        max-width: 100% !important;
+        padding: 0 !important;
+        margin: 0 !important;
+    }
+
+    /* Force all tabs to be visible in print report */
+    .tab-content {
+        display: block !important;
+        page-break-after: always;
+    }
+
+    .submatrix-panel {
+        display: block !important;
+        margin-bottom: 2rem !important;
+    }
+
+    .shadow-sm, .shadow-md, .shadow-lg, .shadow-xl {
+        box-shadow: none !important;
+        border: 1px solid #e2e8f0 !important;
+    }
+
+    table {
+        page-break-inside: avoid;
+    }
+}
